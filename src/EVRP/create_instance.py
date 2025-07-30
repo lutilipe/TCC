@@ -5,7 +5,7 @@ from EVRP.classes.instance import Instance
 from EVRP.classes.station import Station
 from EVRP.classes.technology import Technology
 from EVRP.classes.vehicle import Vehicle
-from utils.math import build_distance_matrix, build_time_matrix
+from utils.math import build_matrices
 from utils.read_file import read_gvrp_file
 
 def create_evrp_instance(filename: str) -> Instance:
@@ -22,9 +22,9 @@ def create_evrp_instance(filename: str) -> Instance:
     instance = Instance()
 
     instance.technologies = [
-        Technology("S", power=3.6, cost_per_kwh=0.160),   # Slow (only at depot)
-        Technology("M", power=20, cost_per_kwh=0.176),  # Medium (CHAdeMO)
-        Technology("F", power=45, cost_per_kwh=0.192)   # Fast (wireless)
+        Technology(0, power=3.6, cost_per_kwh=0.160),   # Slow (only at depot)
+        Technology(1, power=20, cost_per_kwh=0.176),  # Medium (CHAdeMO)
+        Technology(2, power=45, cost_per_kwh=0.192)   # Fast (wireless)
     ]
 
     depot_data = data["recharge_points"][0]
@@ -57,21 +57,18 @@ def create_evrp_instance(filename: str) -> Instance:
         ]
         instance.nodes.append(node)
 
-    num_vehicles = int(data["parameters"]["NN"] / 4)
-    for _ in range(num_vehicles):
-        vehicle = Vehicle(
-            capacity=2300,
-            battery_capacity=20,
-            consumption_rate=0.125
-        )
-        instance.vehicles.append(vehicle)
+    instance.num_vehicles = int(data["parameters"]["NN"] / 4)
+    instance.vehicle = Vehicle(
+        capacity=2300,
+        battery_capacity=20,
+        consumption_rate=0.125
+    )
 
     instance.max_route_duration = 8  # horas
     instance.charging_fixed_time = 0.1  # horas
     instance.battery_depreciation_cost = 2.27  # €/ciclo
     instance.night_charging_cost = 0.12  # €/kWh (somente para depósito com tecnologia S)
 
-    instance.distance_matrix = build_distance_matrix(instance.nodes)
-    instance.time_matrix = build_time_matrix(instance.distance_matrix, avg_speed=25)
+    instance.distance_matrix, instance.time_matrix = build_matrices(instance.nodes)
 
     return instance

@@ -1,14 +1,17 @@
-from typing import List
+from typing import Dict, List, TypeAlias
 from EVRP.classes.node import Node
 from EVRP.classes.technology import Technology
 from EVRP.classes.vehicle import Vehicle
 
+Matrix: TypeAlias = Dict[int, Dict[int, float]]
+
 class Instance:
     def __init__(self):
         self.nodes: List[Node] = []
-        self.vehicles: List[Vehicle] = []
-        self.distance_matrix: List[List[float]] = None
-        self.time_matrix: List[List[float]] = None
+        self.vehicle: Vehicle = None
+        self.num_vehicles = 0
+        self.distance_matrix: Matrix = None
+        self.time_matrix: Matrix = None
         self.technologies: List[Technology] = []
         self.max_route_duration = 0
         self.charging_fixed_time = 0

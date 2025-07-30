@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 from EVRP.classes.instance import Instance
 from EVRP.classes.node import NodeType
+from EVRP.classes.technology import TECH_NAME
 
 def plot_gvrp_instance(instance: Instance):
     """
@@ -62,29 +63,21 @@ def print_instance_summary(instance: Instance) -> None:
 
     print(f"- Estação de Recarga: {len(stations)}")
     for s in stations:
-        techs = ", ".join(t.id for t in s.technologies)
+        techs = ", ".join(TECH_NAME[t.id] for t in s.technologies)
         print(f"  · ID {s.id} em ({s.x:.2f}, {s.y:.2f}) | Tecnologias: {techs}")
 
     print("\nTecnologias:")
     for t in instance.technologies:
-        print(f"· {t.id.capitalize()} — Velocidade: {t.power} kWh/h, Custo: €{t.cost_per_kwh:.3f}/kWh")
+        print(f"· {TECH_NAME[t.id].capitalize()} — Velocidade: {t.power} kWh/h, Custo: €{t.cost_per_kwh:.3f}/kWh")
 
-    print(f"\nVeículos: {len(instance.vehicles)}")
-    for i, v in enumerate(instance.vehicles[:1]):
-        print(f"- Capacidade={v.capacity} kg, Bateria={v.battery_capacity} kWh, Consumo={v.consumption_rate} kWh/km")
+    print(f"\nVeículos: {instance.num_vehicles}")
+    print(f"- Capacidade={instance.vehicle.capacity} kg, Bateria={instance.vehicle.battery_capacity} kWh, Consumo={instance.vehicle.consumption_rate} kWh/km")
+        
 
     print("\nParâmetros:")
     print(f"· Tempo máximo de duração da rota: {instance.max_route_duration} h")
     print(f"· Tempo fixo para recarga: {instance.charging_fixed_time} h")
     print(f"· Custo de depreciação da bateria: €{instance.battery_depreciation_cost}/cycle")
     print(f"· Custo recarga noturna: €{instance.night_charging_cost}/kWh")
-
-    print("\nMatrix de distância (truncada):")
-    for row in instance.distance_matrix[:5]:
-        print("  ", ["{:.1f}".format(d) for d in row[:5]])
-
-    print("\nMatrix de tempo (truncada):")
-    for row in instance.time_matrix[:5]:
-        print("  ", ["{:.2f}".format(t) for t in row[:5]])
 
     print("=================================\n")
