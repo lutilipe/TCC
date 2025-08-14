@@ -47,7 +47,7 @@ def plot_solution(instance: Instance, solution: Solution):
     for i, route in enumerate(solution.routes):
         color = colors[i % len(colors)]
         route_metrics.append(
-            f"Rota {i+1}: {len([n for n in route.nodes if n.type=='customer'])} clientes | "
+            f"Rota {i+1}: {len([n for n in route.nodes if n.type==NodeType.CUSTOMER])} clientes | "
             f"€{route.total_cost:.2f} | {route.total_distance:.2f}km"
         )
 

@@ -64,7 +64,7 @@ def create_evrp_instance(filename: str) -> Instance:
         consumption_rate=0.125
     )
 
-    instance.max_route_duration = 8  # horas
+    instance.max_route_duration = 8 * 60  # horas
     instance.charging_fixed_time = 0.1  # horas
     instance.battery_depreciation_cost = 2.27  # €/ciclo
     instance.night_charging_cost = 0.12  # €/kWh (somente para depósito com tecnologia S)

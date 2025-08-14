@@ -11,6 +11,11 @@ if __name__ == "__main__":
     print_instance_summary(instance)
 
     constructiveHeuristic = ConstructiveHeuristic(instance)
-    solution = constructiveHeuristic.build_initial_solution()
-    plot_solution(instance, solution)
+    pop = []
+    while len(pop) < 50:
+        solution = constructiveHeuristic.build_initial_solution()
+        while not solution.is_feasible:
+            solution = constructiveHeuristic.build_initial_solution()
+        print(solution.total_cost, solution.total_distance)
+        pop.append(solution)
     
