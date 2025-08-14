@@ -259,6 +259,8 @@ class ConstructiveHeuristic:
             route.current_load = 0.0
             route.current_time = 0.0
             i = self.depot.id  # start from depot
+
+            route.charging_decisions[self.depot.id] = (self.instance.technologies[0], route.current_battery)
             
             # Step 2: repeat
             while True:
