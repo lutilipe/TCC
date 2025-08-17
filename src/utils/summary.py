@@ -78,6 +78,5 @@ def print_instance_summary(instance: Instance) -> None:
     print(f"· Tempo máximo de duração da rota: {instance.max_route_duration} h")
     print(f"· Tempo fixo para recarga: {instance.charging_fixed_time} h")
     print(f"· Custo de depreciação da bateria: €{instance.battery_depreciation_cost}/cycle")
-    print(f"· Custo recarga noturna: €{instance.night_charging_cost}/kWh")
 
     print("=================================\n")

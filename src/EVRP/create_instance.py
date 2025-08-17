@@ -31,6 +31,7 @@ def create_evrp_instance(filename: str) -> Instance:
     depot = Depot(id=depot_data["id"], x=depot_data["x"], y=depot_data["y"])
     depot.technologies = [instance.technologies[0]]
     instance.nodes.append(depot)
+    instance.depots.append(depot)
 
     for customer in data["customers"]:
         node = Customer(
@@ -41,6 +42,7 @@ def create_evrp_instance(filename: str) -> Instance:
             service_time=customer["service_time"]
         )
         instance.nodes.append(node)
+        instance.customers.append(node)
 
     for point in data["recharge_points"]:
         if point["id"] == 0:
@@ -56,6 +58,7 @@ def create_evrp_instance(filename: str) -> Instance:
             if flag == 1 and idx < len(instance.technologies)
         ]
         instance.nodes.append(node)
+        instance.stations.append(node)
 
     instance.num_vehicles = int(data["parameters"]["NN"] / 4)
     instance.vehicle = Vehicle(
@@ -67,7 +70,6 @@ def create_evrp_instance(filename: str) -> Instance:
     instance.max_route_duration = 8 * 60  # horas
     instance.charging_fixed_time = 0.1  # horas
     instance.battery_depreciation_cost = 2.27  # €/ciclo
-    instance.night_charging_cost = 0.12  # €/kWh (somente para depósito com tecnologia S)
 
     instance.distance_matrix, instance.time_matrix = build_matrices(instance.nodes)
 

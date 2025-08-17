@@ -1,4 +1,4 @@
-import numpy as np
+# import numpy as np
 from EVRP.classes.instance import Matrix
 from EVRP.classes.node import Node
 from typing import  List, Tuple, TypeAlias
@@ -7,7 +7,7 @@ import math
 DistanceTimeMatrices: TypeAlias = Tuple[Matrix, Matrix]
 
 def euclidean_distance(node1: Node, node2: Node) -> float:
-    return np.sqrt((node1.x - node2.x)**2 + (node1.y - node2.y)**2)
+    return math.sqrt((node1.x - node2.x)**2 + (node1.y - node2.y)**2)
 
 def build_matrices(nodes: List[Node], avg_speed: float = 25.0) -> DistanceTimeMatrices:
     distance_matrix = {}

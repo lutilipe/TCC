@@ -1,0 +1,353 @@
+Soluções não-dominadas encontradas pelo GVNS
+==================================================
+
+Solução 1:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 2:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 3:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 4:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 5:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 6:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 7:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 8:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 9:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 10:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 11:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 12:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 13:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 14:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 15:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 16:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 17:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 18:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 19:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 20:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 21:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 22:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 23:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 24:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 25:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 26:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 27:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 28:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 29:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 30:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 31:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 32:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 33:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 34:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 35:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 36:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 37:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 38:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 39:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 40:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 41:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 42:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 43:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 44:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 45:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 46:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 47:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 48:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 49:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 50:
+  Distância total: 2349.83
+  Veículos usados: 8
+  Custo total: 123.64
+  Solução factível: Sim
+  Número de rotas: 8
+
