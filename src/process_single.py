@@ -47,8 +47,8 @@ def process_single_instance(instance_file):
         na=50,          # Tamanho máximo do arquivo A
         ls_max_iter=10, # Máximo de tentativas de busca local
         max_evaluations=3000,  # Máximo de avaliações,
-        local_search=[twoOpt, twoOptStar],
-        perturbation=[twoOpt, twoOptStar]
+        local_search=[twoOpt, twoOptStar, reinsertion, rechargeRealocation],
+        perturbation=[twoOpt, twoOptStar, reinsertion, rechargeRealocation]
     )
             
     

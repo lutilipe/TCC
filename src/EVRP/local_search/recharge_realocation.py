@@ -41,7 +41,33 @@ class RechargeRealocation:
     def __init__(self, instance: Instance):
         self.instance = instance
 
-    def run(self, solution: 'Solution') -> bool:
+    def perturbation(self, solution: 'Solution') -> bool:
+        """
+        Apply recharge relocation to optimize recharge station placement in routes.
+        
+        Args:
+            solution: The solution to optimize
+            
+        Returns:
+            bool: True if any improvement was made, False otherwise
+        """
+        improved = False
+        
+        for route in solution.routes:
+            if self._optimize_route(route):
+                improved = True
+        
+        if improved:
+            # Re-evaluate the entire solution to ensure all routes are feasible
+            solution.evaluate()
+            
+            # Double-check that the solution is still feasible after all modifications
+            if not solution.is_feasible:
+                print("Warning: Recharge relocation made solution infeasible")
+        
+        return solution
+
+    def local_search(self, solution: 'Solution') -> bool:
         """
         Apply recharge relocation to optimize recharge station placement in routes.
         
@@ -94,11 +120,11 @@ class RechargeRealocation:
                 if node.type == NodeType.STATION:
                     route.nodes.remove(node)
                     route.charging_decisions.pop(node.id)
-                    route.evaluate()
+                    route.evaluate(self.instance)
                     if not route.is_feasible:
                         route.nodes.insert(idx, node)
                         route.charging_decisions[node.id] = (node.technologies[0], node.technologies[0].power)
-                        route.evaluate()
+                        route.evaluate(self.instance)
                         return False
                     return True
             return False 

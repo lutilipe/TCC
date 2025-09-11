@@ -63,8 +63,11 @@ end if
 class Reinsertion:
     def __init__(self, instance: Instance):
         self.instance = instance
+        self.max_iterations = 10
+        self.best_improvement = False
+        self.update_savings = True
 
-    def run(self, solution: 'Solution', max_iterations: int = 10, best_improvement: bool = True, update_savings: bool = True) -> bool:
+    def perturbation(self, solution: 'Solution') -> bool:
         """
         Run the reinsertion local search algorithm
         
@@ -83,7 +86,7 @@ class Reinsertion:
         improved = False
         iteration = 0
         
-        while iteration < max_iterations:
+        while iteration < self.max_iterations:
             # Calculate savings for each customer
             customer_savings = self._calculate_customer_savings(solution)
             
@@ -101,7 +104,7 @@ class Reinsertion:
                 move = self._find_best_reinsertion_move(solution, customer_id)
                 
                 if move and move['total_saving'] > 0:
-                    if best_improvement:
+                    if self.best_improvement:
                         # Select the move with highest saving
                         if move['total_saving'] > best_saving:
                             best_move = move
@@ -123,7 +126,79 @@ class Reinsertion:
             solution.evaluate()
             
             # Update or remove savings based on parameter
-            if update_savings:
+            if self.update_savings:
+                # Update savings for affected routes
+                self._update_savings_after_move(customer_savings, best_move, solution)
+                # Resort the savings
+                customer_savings.sort(key=lambda x: x[1], reverse=True)
+            else:
+                # Remove the customer from savings list
+                customer_savings[:] = [(c, s) for c, s in customer_savings if c != best_move['customer_id']]
+            
+            iteration += 1
+            
+        return solution
+
+    def local_search(self, solution: 'Solution') -> bool:
+        """
+        Run the reinsertion local search algorithm
+        
+        Args:
+            solution: The solution to improve
+            max_iterations: Maximum number of iterations (n in the algorithm)
+            best_improvement: If True, select best move (b=1), else first improving move (b=0)
+            update_savings: If True, update savings after each move (u=1), else remove from list (u=0)
+            
+        Returns:
+            True if the solution was improved, False otherwise
+        """
+        if not solution.routes:
+            return False
+            
+        improved = False
+        iteration = 0
+        
+        while iteration < self.max_iterations:
+            # Calculate savings for each customer
+            customer_savings = self._calculate_customer_savings(solution)
+            
+            if not customer_savings:
+                break
+                
+            # Sort customers by savings (decreasing order)
+            customer_savings.sort(key=lambda x: x[1], reverse=True)
+            
+            best_move = None
+            best_saving = 0
+            
+            # Find the best reinsertion move
+            for customer_id, current_saving in customer_savings:
+                move = self._find_best_reinsertion_move(solution, customer_id)
+                
+                if move and move['total_saving'] > 0:
+                    if self.best_improvement:
+                        # Select the move with highest saving
+                        if move['total_saving'] > best_saving:
+                            best_move = move
+                            best_saving = move['total_saving']
+                    else:
+                        # Select the first improving move
+                        best_move = move
+                        break
+            
+            # If no improving move found, stop
+            if not best_move:
+                break
+                
+            # Perform the best move
+            self._perform_move(solution, best_move)
+            improved = True
+            
+            # Update solution evaluation
+            solution.evaluate()
+            
+            # Update or remove savings based on parameter
+            if self.update_savings:
                 # Update savings for affected routes
                 self._update_savings_after_move(customer_savings, best_move, solution)
                 # Resort the savings

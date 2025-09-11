@@ -137,14 +137,18 @@ class GVNS:
 
     def local_search(self, solution: Solution) -> List[Solution]:
         solutions = []
+        candidate = copy.deepcopy(solution)
         for _ in range(self.ns):
             if self.evaluation_count >= self.max_evaluations:
                 break
 
-            candidate = self._improve_solution(solution)
-
+            candidate = self._improve_solution(candidate)
+            candidate.evaluate()
             if candidate.is_feasible:
                 solutions.append(candidate)
+
+        if candidate.is_feasible:
+            solutions.append(candidate)
 
         return solutions
 

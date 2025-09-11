@@ -73,7 +73,7 @@ def process_all_instances():
                 na=50,          # Tamanho máximo do arquivo A
                 ls_max_iter=500, # Máximo de tentativas de busca local
                 max_evaluations=80,  # Máximo de avaliações,
-                local_search=[twoOpt, twoOptStar],
+                local_search=[twoOpt, twoOptStar, rechargeRealocation],
                 perturbation=[twoOpt, twoOptStar]
             )
             
