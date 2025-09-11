@@ -69,7 +69,6 @@ def process_all_instances():
             print("Executando GVNS...")
             gvns = GVNS(
                 instance=instance,
-                two_opt=twoOpt,
                 ns=5,           # Número de soluções por busca local
                 na=50,          # Tamanho máximo do arquivo A
                 ls_max_iter=500, # Máximo de tentativas de busca local

@@ -29,17 +29,15 @@ import random
 import copy
 from typing import List, Tuple
 from EVRP.solution import Solution
-from EVRP.local_search.two_opt import TwoOpt
 
 class GVNS:
-    def __init__(self, instance, two_opt: TwoOpt, 
+    def __init__(self, instance, 
                  ns: int = 5, na: int = 50, ls_max_iter: int = 10,  max_evaluations: int = 10000, perturbation = [], local_search = []):
         """
         Inicializa o algoritmo GVNS
         
         Args:
             instance: Instância do problema EVRP
-            two_opt: Objeto TwoOpt para busca local
             ns: Número de soluções a serem geradas por busca local
             na: Número máximo de soluções no arquivo A
             ls_max_iter: Número máximo de tentativas de busca local
@@ -47,7 +45,6 @@ class GVNS:
             max_evaluations: Número máximo de avaliações
         """
         self.instance = instance
-        self.two_opt = two_opt
         self.ns = ns
         self.na = na
         self.ls_max_iter = ls_max_iter

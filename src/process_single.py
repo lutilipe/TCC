@@ -43,13 +43,12 @@ def process_single_instance(instance_file):
     print("\n" + "="*70)
     gvns = GVNS(
         instance=instance,
-        two_opt=twoOpt,
         ns=5,           # Número de soluções por busca local
         na=50,          # Tamanho máximo do arquivo A
         ls_max_iter=10, # Máximo de tentativas de busca local
-        max_evaluations=1000,  # Máximo de avaliações,
-        local_search=[twoOptStar, twoOpt],
-        perturbation=[twoOptStar, twoOpt]
+        max_evaluations=3000,  # Máximo de avaliações,
+        local_search=[twoOpt, twoOptStar],
+        perturbation=[twoOpt, twoOptStar]
     )
             
     
