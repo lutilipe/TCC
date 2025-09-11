@@ -42,3 +42,19 @@ class Solution:
             self.is_feasible = False
             unserved = all_customers - served_customers
             print(f"Unserved customers: {unserved}")
+
+    def dominates(self, new_sol: "Solution") -> bool:
+        """
+        Verifica se a solucao domina new_sol (critério de dominância de Pareto)
+        """
+        # Para o EVRP, consideramos múltiplos objetivos
+        # Objetivo 1: Minimizar distância total
+        # Objetivo 2: Minimizar custo total
+        # Verifica se sol1 é melhor ou igual em todos os objetivos
+        if (self.total_distance <= new_sol.total_distance and
+            self.total_cost <= new_sol.total_cost):
+            # Verifica se sol1 é melhor em pelo menos um objetivo
+            if (self.total_distance < new_sol.total_distance or
+                self.total_cost < new_sol.total_cost):
+                return True
+        return False

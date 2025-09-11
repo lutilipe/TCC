@@ -92,3 +92,18 @@ class Route:
             self.is_feasible = False
             #print(f"Route: Time limit exceeded: {current_time:.2f} > {instance.max_route_duration:.2f}")
     
+    def dominates(self, new_route: "Route") -> bool:
+        """
+        Verifica se sol1 domina sol2 (critério de dominância de Pareto)
+        """
+        # Para o EVRP, consideramos múltiplos objetivos
+        # Objetivo 1: Minimizar distância total
+        # Objetivo 2: Minimizar custo total
+        # Verifica se sol1 é melhor ou igual em todos os objetivos
+        if (self.total_distance <= new_route.total_distance and
+            self.total_cost <= new_route.total_cost):
+            # Verifica se sol1 é melhor em pelo menos um objetivo
+            if (self.total_distance < new_route.total_distance or
+                self.total_cost < new_route.total_cost):
+                return True
+        return False

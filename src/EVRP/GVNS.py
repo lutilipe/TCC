@@ -33,8 +33,7 @@ from EVRP.local_search.two_opt import TwoOpt
 
 class GVNS:
     def __init__(self, instance, two_opt: TwoOpt, 
-                 ns: int = 5, na: int = 50, ls_max_iter: int = 10, 
-                 max_pert: int = 3, max_evaluations: int = 10000):
+                 ns: int = 5, na: int = 50, ls_max_iter: int = 10,  max_evaluations: int = 10000, perturbation = [], local_search = []):
         """
         Inicializa o algoritmo GVNS
         
@@ -52,30 +51,11 @@ class GVNS:
         self.ns = ns
         self.na = na
         self.ls_max_iter = ls_max_iter
-        self.max_pert = max_pert
         self.max_evaluations = max_evaluations
         self.evaluation_count = 0
-        
-    def dominates(self, sol1: Solution, sol2: Solution) -> bool:
-        """
-        Verifica se sol1 domina sol2 (critério de dominância de Pareto)
-        """
-        # Para o EVRP, consideramos múltiplos objetivos
-        # Objetivo 1: Minimizar distância total
-        # Objetivo 2: Minimizar número de veículos
-        # Objetivo 3: Minimizar custo total
-        
-        # Verifica se sol1 é melhor ou igual em todos os objetivos
-        if (sol1.total_distance <= sol2.total_distance and 
-            sol1.total_cost <= sol2.total_cost):
-            
-            # Verifica se sol1 é melhor em pelo menos um objetivo
-            if (sol1.total_distance < sol2.total_distance or 
-                sol1.total_cost < sol2.total_cost):
-                return True
-                
-        return False
-    
+        self.pertubation_algorithms = perturbation
+        self.local_search_algorithms = local_search
+
     def is_non_dominated(self, solution: Solution, archive: List[Solution]) -> bool:
         """
         Verifica se uma solução é não-dominada em relação ao arquivo
@@ -83,63 +63,94 @@ class GVNS:
         # Uma solução factível só pode ser dominada por outras soluções factíveis
         for archived_sol in archive:
             # Se a solução arquivada é factível e domina a solução atual
-            if archived_sol.is_feasible and self.dominates(archived_sol, solution):
+            if archived_sol.is_feasible and archived_sol.dominates(solution):
                 return False
         return True
-    
-    def update_archive(self, archive: List[Solution], new_solutions: List[Solution]) -> List[Solution]:
+
+    # Alternative approach using hash-based duplicate detection
+    def get_solution_hash(self, solution: Solution) -> tuple:
         """
-        Atualiza o arquivo A mantendo apenas soluções não-dominadas e factíveis
+        Retorna uma tupla hash da solução baseada nos objetivos
+        Pode ser expandido para incluir mais detalhes se necessário
         """
-        # Adiciona novas soluções ao arquivo
-        archive.extend(new_solutions)
+        return (solution.total_distance, solution.total_cost)
+
+    def update_archive(self, archive: List[Solution], new_solutions: List[Solution]) -> Tuple[List[Solution], bool]:
+        """
+        Versão mais eficiente usando hash para detectar duplicatas.
+        Retorna (novo_arquivo, changed) onde changed indica se houve mudança.
+        """
+        # Cria set com hash das soluções existentes
+        existing_hashes = {self.get_solution_hash(sol) for sol in archive if sol.is_feasible}
+        original_feasible_count = len([sol for sol in archive if sol.is_feasible])
         
-        # Remove soluções dominadas e mantém apenas soluções factíveis
+        # Filtra novas soluções
+        truly_new_solutions = []
+        for new_sol in new_solutions:
+            if new_sol.is_feasible:
+                new_hash = self.get_solution_hash(new_sol)
+                if new_hash not in existing_hashes:
+                    truly_new_solutions.append(new_sol)
+                    existing_hashes.add(new_hash)
+        
+        # Adiciona novas soluções
+        archive.extend(truly_new_solutions)
+        
+        # Remove soluções dominadas
         non_dominated = []
+        processed_hashes = set()
+        
         for sol in archive:
-            # Verifica se a solução é factível
             if not sol.is_feasible:
                 continue
                 
-            # Verifica se é não-dominada
+            sol_hash = self.get_solution_hash(sol)
+            
+            # Evita processar soluções duplicadas
+            if sol_hash in processed_hashes:
+                continue
+                
             if self.is_non_dominated(sol, archive):
                 non_dominated.append(sol)
+                processed_hashes.add(sol_hash)
+                print(sol_hash)
         
-        # Limita o tamanho do arquivo
+        # Apply size limit if necessary
         if len(non_dominated) > self.na:
-            # Ordena por qualidade e mantém as melhores
             non_dominated.sort(key=lambda x: (x.total_distance, x.num_vehicles_used, x.total_cost))
             non_dominated = non_dominated[:self.na]
-        
-        return non_dominated
+
+        # Detecta mudança
+        old_hashes = {self.get_solution_hash(sol) for sol in archive if sol.is_feasible}
+        new_hashes = {self.get_solution_hash(sol) for sol in non_dominated if sol.is_feasible}
+        changed = False
+
+        return non_dominated, changed
     
-    def local_search(self, solution: Solution) -> List[Solution]:
-        """
-        Aplica busca local (two_opt) NS vezes para gerar um conjunto de soluções
-        """
-        solutions = []
-        
-        for _ in range(self.ns):
-            # Cria uma cópia da solução
-            current_sol = copy.deepcopy(solution)
-            
-            # Aplica two_opt
-            improved = self.two_opt.run(current_sol)
-            
+    def _improve_solution(self, solution: Solution) -> Solution:
+        candidate = copy.deepcopy(solution)
+        for method in self.local_search_algorithms:
+            improved = method.local_search(candidate)
+            self.evaluation_count += 1
             if improved:
-                # Reavalia a solução
-                current_sol.evaluate()
-                self.evaluation_count += 1
-            
-            # Só adiciona soluções factíveis
-            if current_sol.is_feasible:
-                solutions.append(current_sol)
-            
-            # Verifica limite de avaliações
+                candidate.evaluate()
+                if candidate.is_feasible:
+                    break
+        return candidate
+
+    def local_search(self, solution: Solution) -> List[Solution]:
+        solutions = []
+        for _ in range(self.ns):
             if self.evaluation_count >= self.max_evaluations:
                 break
-        
+
+            candidate = self._improve_solution(solution)
+
+            if candidate.is_feasible:
+                solutions.append(candidate)
+
         return solutions
+
     
     def perturbation(self, solution: Solution) -> Solution:
         """
@@ -147,57 +158,16 @@ class GVNS:
         """
         perturbed_sol = copy.deepcopy(solution)
         
-        # Aplica MaxPert operações 2-opt aleatórias
-        for _ in range(self.max_pert):
-            if len(perturbed_sol.routes) > 0:
-                # Escolhe uma rota aleatória
-                route_idx = random.randint(0, len(perturbed_sol.routes) - 1)
-                route = perturbed_sol.routes[route_idx]
-                
-                if len(route.nodes) >= 4:
-                    # Aplica uma operação 2-opt aleatória
-                    self._random_two_opt(route)
-        
         # Reavalia a solução perturbada
-        perturbed_sol.evaluate()
-        self.evaluation_count += 1
-        
-        # Se a solução perturbada não for factível, retorna a original
-        if not perturbed_sol.is_feasible:
-            return solution
+        for method in self.pertubation_algorithms:
+            new_solution = method.perturbation(perturbed_sol)
+            new_solution.evaluate()
+            self.evaluation_count += 1
+            if new_solution.is_feasible:
+                perturbed_sol = copy.deepcopy(new_solution)
+                
         
         return perturbed_sol
-    
-    def _random_two_opt(self, route):
-        """
-        Aplica uma operação 2-opt aleatória em uma rota
-        """
-        if len(route.nodes) < 4:
-            return
-        
-        # Escolhe dois índices aleatórios para 2-opt
-        i = random.randint(0, len(route.nodes) - 3)
-        j = random.randint(i + 2, len(route.nodes) - 1)
-        
-        if i < j and j < len(route.nodes) - 1:
-            # Aplica a operação 2-opt
-            self._apply_2opt_move(route, i, j)
-    
-    def _apply_2opt_move(self, route, i: int, j: int):
-        """
-        Aplica uma operação 2-opt específica
-        """
-        if i >= j or i < 0 or j >= len(route.nodes) - 1:
-            return
-        
-        # Inverte o segmento de i+1 a j
-        left = i + 1
-        right = j
-        
-        while left < right:
-            route.nodes[left], route.nodes[right] = route.nodes[right], route.nodes[left]
-            left += 1
-            right -= 1
     
     def run(self, initial_population: List[Solution]) -> List[Solution]:
         """
@@ -227,7 +197,7 @@ class GVNS:
             local_solutions = self.local_search(solution)
             
             # Passo 10: Atualiza arquivo A
-            archive = self.update_archive(archive, local_solutions)
+            archive, _ = self.update_archive(archive, local_solutions)
             
             print(f"  Soluções geradas: {len(local_solutions)}, Arquivo A: {len(archive)}")
             
@@ -282,10 +252,10 @@ class GVNS:
                 
                 # Passo 17: Atualiza arquivo A
                 old_size = len(archive)
-                archive = self.update_archive(archive, local_solutions)
+                archive, changed = self.update_archive(archive, local_solutions)
                 new_size = len(archive)
                 
-                if new_size != old_size:
+                if changed:
                     archive_changed = True
                     print(f"    Arquivo A atualizado: {old_size} -> {new_size}")
                 
