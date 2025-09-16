@@ -2,9 +2,15 @@ from EVRP import GVNS
 from EVRP.constructive_heuristic import ConstructiveHeuristic
 from EVRP.create_instance import create_evrp_instance
 from EVRP.local_search.recharge_realocation import RechargeRealocation
-from EVRP.local_search.reinsertion import Reinsertion
 from EVRP.local_search.two_opt import TwoOpt
 from EVRP.local_search.two_opt_star import TwoOptStar
+from EVRP.local_search.reinsertion import Reinsertion
+from EVRP.local_search.recharge_realocation import RechargeRealocation
+from EVRP.local_search.relocate import Relocate
+from EVRP.local_search.exchange import Exchange
+from EVRP.local_search.or_opt import OrOpt
+from EVRP.local_search.three_opt import ThreeOpt
+from EVRP.local_search.shift import Shift
 from utils import plot_solution, print_instance_summary
 
 def process_single_instance(instance_file):
@@ -18,10 +24,6 @@ def process_single_instance(instance_file):
     print_instance_summary(instance)
 
     constructiveHeuristic = ConstructiveHeuristic(instance)
-    twoOpt = TwoOpt(instance)
-    twoOptStar = TwoOptStar(instance)
-    rechargeRealocation = RechargeRealocation(instance)
-    reinsertion = Reinsertion(instance)
     
     # Cria população inicial de soluções
     print("\nCriando população inicial...")
@@ -46,9 +48,16 @@ def process_single_instance(instance_file):
         ns=5,           # Número de soluções por busca local
         na=50,          # Tamanho máximo do arquivo A
         ls_max_iter=10, # Máximo de tentativas de busca local
-        max_evaluations=3000,  # Máximo de avaliações,
-        local_search=[twoOpt, twoOptStar, reinsertion, rechargeRealocation],
-        perturbation=[twoOpt, twoOptStar, reinsertion, rechargeRealocation]
+        max_evaluations=1000,  # Máximo de avaliações,
+        local_search=[
+            TwoOptStar(instance, max_iter=5),
+            TwoOpt(instance, max_iter=3),
+            RechargeRealocation(instance)
+        ],
+        perturbation=[
+            Reinsertion(instance, max_iterations=10),
+            TwoOpt(instance, max_iter=10)
+        ]
     )
             
     
@@ -63,7 +72,7 @@ def process_single_instance(instance_file):
         print(f"Soluções não-dominadas encontradas: {len(final_solutions)}")
         
         # Ordena soluções por qualidade
-        final_solutions.sort(key=lambda x: (x.total_distance, x.num_vehicles_used, x.total_cost))
+        final_solutions.sort(key=lambda x: (x.total_cost, x.total_distance))
         
         print("\nTop 5 melhores soluções:")
         print("Rank | Distância | Veículos | Custo   | Factível")

@@ -32,7 +32,8 @@ from EVRP.solution import Solution
 
 class GVNS:
     def __init__(self, instance, 
-                 ns: int = 5, na: int = 50, ls_max_iter: int = 10,  max_evaluations: int = 10000, perturbation = [], local_search = []):
+                 ns: int = 5, na: int = 50, ls_max_iter: int = 10,  max_evaluations: int = 10000, 
+                 perturbation = None, local_search = None):
         """
         Inicializa o algoritmo GVNS
         
@@ -41,8 +42,9 @@ class GVNS:
             ns: Número de soluções a serem geradas por busca local
             na: Número máximo de soluções no arquivo A
             ls_max_iter: Número máximo de tentativas de busca local
-            max_pert: Número máximo de perturbações 2-opt
             max_evaluations: Número máximo de avaliações
+            perturbation: Lista de algoritmos de perturbação (se None, usa padrão)
+            local_search: Lista de algoritmos de busca local (se None, usa padrão)
         """
         self.instance = instance
         self.ns = ns
@@ -50,6 +52,7 @@ class GVNS:
         self.ls_max_iter = ls_max_iter
         self.max_evaluations = max_evaluations
         self.evaluation_count = 0
+        
         self.pertubation_algorithms = perturbation
         self.local_search_algorithms = local_search
 
@@ -154,9 +157,6 @@ class GVNS:
 
     
     def perturbation(self, solution: Solution) -> Solution:
-        """
-        Aplica perturbação aleatória usando operações 2-opt
-        """
         perturbed_sol = copy.deepcopy(solution)
         
         # Reavalia a solução perturbada

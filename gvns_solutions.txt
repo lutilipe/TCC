@@ -2,16 +2,30 @@ Soluções não-dominadas encontradas pelo GVNS
 ==================================================
 
 Solução 1:
-  Distância total: 2328.27
-  Veículos usados: 8
-  Custo total: 117.28
+  Distância total: 1419.31
+  Veículos usados: 9
+  Custo total: 29.27
   Solução factível: Sim
-  Número de rotas: 8
+  Número de rotas: 9
 
 Solução 2:
-  Distância total: 2475.68
-  Veículos usados: 8
-  Custo total: 113.38
+  Distância total: 1412.23
+  Veículos usados: 9
+  Custo total: 29.67
   Solução factível: Sim
-  Número de rotas: 8
+  Número de rotas: 9
+
+Solução 3:
+  Distância total: 1378.22
+  Veículos usados: 9
+  Custo total: 42.51
+  Solução factível: Sim
+  Número de rotas: 9
+
+Solução 4:
+  Distância total: 1358.18
+  Veículos usados: 9
+  Custo total: 45.37
+  Solução factível: Sim
+  Número de rotas: 9
 

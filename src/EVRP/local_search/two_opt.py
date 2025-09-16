@@ -13,7 +13,7 @@ class TwoOpt:
         self.instance = instance
         self.max_iter = max_iter
 
-    def local_search(self, solution: 'Solution') -> bool:
+    def run(self, solution: 'Solution') -> bool:
         """
         Apply 2-opt to all routes in a solution.
         Returns True if any improvement was made, False otherwise.
@@ -22,13 +22,25 @@ class TwoOpt:
         route = solution.routes[route_idx]
         return self.two_opt(route)
     
+    def local_search(self, solution: 'Solution') -> bool:
+        """
+        Apply 2-opt perturbation to all routes in a solution.
+        Returns True if any improvement was made, False otherwise.
+        """
+        improved = False
+        for _ in range(self.max_iter):
+            if self.run(solution):
+                improved = True
+        
+        return improved
+    
     def perturbation(self, solution: 'Solution') -> 'Solution':
         """
         Apply 2-opt perturbation to all routes in a solution.
         Returns True if any improvement was made, False otherwise.
         """
         for _ in range(self.max_iter):
-            self.local_search(solution)
+            self.run(solution)
         
         return solution
     

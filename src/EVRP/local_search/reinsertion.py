@@ -6,65 +6,11 @@ from EVRP.classes.route import Route
 if TYPE_CHECKING:
     from EVRP.solution import Solution
 
-"""
-Reinsertion
-In most real cases the autonomy of the vehicles, together with the limited average speed of traveling and the maximum
-duration of routes, make that feasible routes visit one recharge station at most. So for most instances assuming this property
-of the routes is not unrealistic and it provides remarkable advantages from the computational viewpoint. The Reinsertion
-neighborhood is then explored when this assumption can be made. Customers are relocated from one route to another with
-the purpose of eliminating routes, eliminating recharges or just decreasing energy consumption.
-First, the savings achieved by removing each customer from its route are calculated. To do this, the lengths of the links that
-are not traversed after removing the corresponding node are subtracted and the length of the new link needed to reconnect the
-route is added, as it is done in standard vehicle routing problems. However, now we must also check if the removal of the cus-
-tomer allows to eliminate any recharge along the route, due to the energy saved; in that case, additional savings are obtained by
-skipping the corresponding recharge station. This information should be updated every time the solution is modiﬁed.
-Algorithm 4. Reinsertionub ðRub Þ
-Input.
- S: Initial feasible solution.
- n: Number of iterations.
-Output.
- S0 : New solution produced.
-Pseudocode.
-1: Set S0 :¼ S.
-2: Calculate the savings g i produced by the removal of each customer i of S0 and sort them.
-3: for ðj :¼ 1; nÞ do
-4: Consider the customers in decreasing order of g i . For each of these customers c, select the route r of the customer
-that is closest to c and visited by a different vehicle and calculate the total cost saving that would be obtained if
-customer c is removed from its current route and inserted in route r without modifying the sequence of the other
-customers already being served by r.
-5: if (b ¼ 1) then
-6:
-Select the move v involving customer i with the highest saving.
-7: else
-8:
-Select the ﬁrst move v found involving customer i with a positive saving.
-9: end if
-10: if (no improving move v is found) then
-11:
-return
-12: else
-13:
-Perform move v on S0 .
-14:
-if (u ¼ 1) then
-15:
-Update the savings g i concerning the customers i belonging to routes being affected by the move performed
-and sort them again.
-16:
-else
-17:
-Eliminate g i from the list of savings.
-18:
-end if
-19: end if
-20: end for
-"""
-
 class Reinsertion:
-    def __init__(self, instance: Instance):
+    def __init__(self, instance: Instance, max_iterations = 3, best_improvement = False):
         self.instance = instance
-        self.max_iterations = 10
-        self.best_improvement = False
+        self.max_iterations = max_iterations
+        self.best_improvement = best_improvement
         self.update_savings = True
 
     def perturbation(self, solution: 'Solution') -> bool:
@@ -73,142 +19,185 @@ class Reinsertion:
         
         Args:
             solution: The solution to improve
-            max_iterations: Maximum number of iterations (n in the algorithm)
-            best_improvement: If True, select best move (b=1), else first improving move (b=0)
-            update_savings: If True, update savings after each move (u=1), else remove from list (u=0)
             
         Returns:
             True if the solution was improved, False otherwise
         """
-        if not solution.routes:
+        if not solution.routes or len(solution.routes) < 2:
             return False
             
         improved = False
-        iteration = 0
         
-        while iteration < self.max_iterations:
-            # Calculate savings for each customer
+        # Main reinsertion loop: for j = 1 to n
+        for iteration in range(self.max_iterations):
+            # Calculate g_i (savings) for each customer
             customer_savings = self._calculate_customer_savings(solution)
             
             if not customer_savings:
                 break
                 
-            # Sort customers by savings (decreasing order)
+            # Sort customers by savings in decreasing order of g_i
             customer_savings.sort(key=lambda x: x[1], reverse=True)
             
-            best_move = None
-            best_saving = 0
+            # Find all possible improving moves
+            improving_moves = []
             
-            # Find the best reinsertion move
-            for customer_id, current_saving in customer_savings:
-                move = self._find_best_reinsertion_move(solution, customer_id)
+            # For each customer c in decreasing order of g_i
+            for customer_id, g_i in customer_savings:
+                # Find the current route of customer c
+                current_route_idx = self._find_customer_route(solution, customer_id)
+                if current_route_idx is None:
+                    continue
                 
-                if move and move['total_saving'] > 0:
-                    if self.best_improvement:
-                        # Select the move with highest saving
-                        if move['total_saving'] > best_saving:
-                            best_move = move
-                            best_saving = move['total_saving']
-                    else:
-                        # Select the first improving move
-                        best_move = move
-                        break
+                # Find the closest route r visited by a different vehicle
+                closest_route_idx = self._find_closest_route(solution, customer_id, current_route_idx)
+                if closest_route_idx is None:
+                    continue
+                
+                # Calculate total cost saving for the reinsertion
+                total_saving = self._calculate_reinsertion_saving(
+                    solution, customer_id, current_route_idx, closest_route_idx
+                )
+                
+                # If the move improves the solution, add it to the list
+                if total_saving > 0:
+                    improving_moves.append({
+                        'customer_id': customer_id,
+                        'current_route_idx': current_route_idx,
+                        'target_route_idx': closest_route_idx,
+                        'saving': total_saving
+                    })
             
-            # If no improving move found, stop
-            if not best_move:
+            # Step 6-9: Select move based on strategy
+            if not improving_moves:
+                # Step 10-11: No improving move found, return
                 break
-                
-            # Perform the best move
-            self._perform_move(solution, best_move)
-            improved = True
             
-            # Update solution evaluation
-            solution.evaluate()
-            
-            # Update or remove savings based on parameter
-            if self.update_savings:
-                # Update savings for affected routes
-                self._update_savings_after_move(customer_savings, best_move, solution)
-                # Resort the savings
-                customer_savings.sort(key=lambda x: x[1], reverse=True)
+            selected_move = None
+            if self.best_improvement:
+                # Step 6: Select the move with the highest saving
+                selected_move = max(improving_moves, key=lambda x: x['saving'])
             else:
-                # Remove the customer from savings list
-                customer_savings[:] = [(c, s) for c, s in customer_savings if c != best_move['customer_id']]
+                # Step 7-8: Select the first move with positive saving
+                selected_move = improving_moves[0]
             
-            iteration += 1
-            
+            # Step 13: Perform the selected move
+            if self._apply_reinsertion(
+                solution, 
+                selected_move['customer_id'], 
+                selected_move['current_route_idx'], 
+                selected_move['target_route_idx']
+            ):
+                improved = True
+                
+                # Step 14-18: Update savings based on strategy
+                if self.update_savings:
+                    # Step 15: Update savings for affected customers and sort again
+                    # Recalculate savings for customers in affected routes
+                    self._update_savings_for_affected_routes(
+                        solution, customer_savings, 
+                        selected_move['current_route_idx'], 
+                        selected_move['target_route_idx']
+                    )
+                else:
+                    # Step 17: Eliminate g_i from the list of savings
+                    # Remove the moved customer from the savings list
+                    customer_savings = [(cid, g) for cid, g in customer_savings 
+                                      if cid != selected_move['customer_id']]
         return solution
-
+   
     def local_search(self, solution: 'Solution') -> bool:
         """
         Run the reinsertion local search algorithm
         
         Args:
             solution: The solution to improve
-            max_iterations: Maximum number of iterations (n in the algorithm)
-            best_improvement: If True, select best move (b=1), else first improving move (b=0)
-            update_savings: If True, update savings after each move (u=1), else remove from list (u=0)
             
         Returns:
             True if the solution was improved, False otherwise
         """
-        if not solution.routes:
+        if not solution.routes or len(solution.routes) < 2:
             return False
             
         improved = False
-        iteration = 0
         
-        while iteration < self.max_iterations:
-            # Calculate savings for each customer
+        # Main reinsertion loop: for j = 1 to n
+        for iteration in range(self.max_iterations):
+            # Calculate g_i (savings) for each customer
             customer_savings = self._calculate_customer_savings(solution)
             
             if not customer_savings:
                 break
                 
-            # Sort customers by savings (decreasing order)
+            # Sort customers by savings in decreasing order of g_i
             customer_savings.sort(key=lambda x: x[1], reverse=True)
             
-            best_move = None
-            best_saving = 0
+            # Find all possible improving moves
+            improving_moves = []
             
-            # Find the best reinsertion move
-            for customer_id, current_saving in customer_savings:
-                move = self._find_best_reinsertion_move(solution, customer_id)
+            # For each customer c in decreasing order of g_i
+            for customer_id, g_i in customer_savings:
+                # Find the current route of customer c
+                current_route_idx = self._find_customer_route(solution, customer_id)
+                if current_route_idx is None:
+                    continue
                 
-                if move and move['total_saving'] > 0:
-                    if self.best_improvement:
-                        # Select the move with highest saving
-                        if move['total_saving'] > best_saving:
-                            best_move = move
-                            best_saving = move['total_saving']
-                    else:
-                        # Select the first improving move
-                        best_move = move
-                        break
+                # Find the closest route r visited by a different vehicle
+                closest_route_idx = self._find_closest_route(solution, customer_id, current_route_idx)
+                if closest_route_idx is None:
+                    continue
+                
+                # Calculate total cost saving for the reinsertion
+                total_saving = self._calculate_reinsertion_saving(
+                    solution, customer_id, current_route_idx, closest_route_idx
+                )
+                
+                # If the move improves the solution, add it to the list
+                if total_saving > 0:
+                    improving_moves.append({
+                        'customer_id': customer_id,
+                        'current_route_idx': current_route_idx,
+                        'target_route_idx': closest_route_idx,
+                        'saving': total_saving
+                    })
             
-            # If no improving move found, stop
-            if not best_move:
+            # Step 6-9: Select move based on strategy
+            if not improving_moves:
+                # Step 10-11: No improving move found, return
                 break
-                
-            # Perform the best move
-            self._perform_move(solution, best_move)
-            improved = True
             
-            # Update solution evaluation
-            solution.evaluate()
-            
-            # Update or remove savings based on parameter
-            if self.update_savings:
-                # Update savings for affected routes
-                self._update_savings_after_move(customer_savings, best_move, solution)
-                # Resort the savings
-                customer_savings.sort(key=lambda x: x[1], reverse=True)
+            selected_move = None
+            if self.best_improvement:
+                # Step 6: Select the move with the highest saving
+                selected_move = max(improving_moves, key=lambda x: x['saving'])
             else:
-                # Remove the customer from savings list
-                customer_savings[:] = [(c, s) for c, s in customer_savings if c != best_move['customer_id']]
+                # Step 7-8: Select the first move with positive saving
+                selected_move = improving_moves[0]
             
-            iteration += 1
-            
+            # Step 13: Perform the selected move
+            if self._apply_reinsertion(
+                solution, 
+                selected_move['customer_id'], 
+                selected_move['current_route_idx'], 
+                selected_move['target_route_idx']
+            ):
+                improved = True
+                
+                # Step 14-18: Update savings based on strategy
+                if self.update_savings:
+                    # Step 15: Update savings for affected customers and sort again
+                    # Recalculate savings for customers in affected routes
+                    self._update_savings_for_affected_routes(
+                        solution, customer_savings, 
+                        selected_move['current_route_idx'], 
+                        selected_move['target_route_idx']
+                    )
+                else:
+                    # Step 17: Eliminate g_i from the list of savings
+                    # Remove the moved customer from the savings list
+                    customer_savings = [(cid, g) for cid, g in customer_savings 
+                                      if cid != selected_move['customer_id']]
+        print(improved)
         return improved
     
     def _calculate_customer_savings(self, solution: 'Solution') -> List[Tuple[int, float]]:
@@ -290,170 +279,262 @@ class Reinsertion:
                 count += 1
         return count
     
-    def _find_best_reinsertion_move(self, solution: 'Solution', customer_id: int) -> dict:
-        """Find the best reinsertion move for a customer"""
-        best_move = None
-        best_saving = 0
-        
-        # Find the route containing the customer
-        source_route_idx = None
-        customer_idx = None
+    def _find_customer_route(self, solution: 'Solution', customer_id: int) -> int:
+        """Find the route index containing the customer"""
         for route_idx, route in enumerate(solution.routes):
-            for node_idx, node in enumerate(route.nodes):
-                if node.id == customer_id and node.type == NodeType.CUSTOMER:
-                    source_route_idx = route_idx
-                    customer_idx = node_idx
-                    break
-            if source_route_idx is not None:
-                break
-        
-        if source_route_idx is None:
+            for node in route.nodes:
+                if node.type == NodeType.CUSTOMER and node.id == customer_id:
+                    return route_idx
+        return None
+    
+    def _find_closest_route(self, solution: 'Solution', customer_id: int, current_route_idx: int) -> int:
+        """Find the closest route visited by a different vehicle"""
+        if len(solution.routes) < 2:
             return None
             
-        source_route = solution.routes[source_route_idx]
+        # Get customer node
+        customer_node = None
+        for node in solution.routes[current_route_idx].nodes:
+            if node.type == NodeType.CUSTOMER and node.id == customer_id:
+                customer_node = node
+                break
+                
+        if customer_node is None:
+            return None
+            
+        min_distance = float('inf')
+        closest_route_idx = None
         
-        # Try inserting into other routes
-        for target_route_idx, target_route in enumerate(solution.routes):
-            if target_route_idx == source_route_idx:
+        # Find the closest route (excluding current route)
+        for route_idx, route in enumerate(solution.routes):
+            if route_idx == current_route_idx:
                 continue
                 
-            # Try different insertion positions
-            for insert_pos in range(1, len(target_route.nodes)):  # Skip depot at position 0
-                move = self._evaluate_insertion_move(
-                    solution, customer_id, source_route_idx, target_route_idx, insert_pos
-                )
+            # Calculate minimum distance to any node in this route
+            min_route_distance = float('inf')
+            for node in route.nodes:
+                if node.type in [NodeType.CUSTOMER, NodeType.STATION, NodeType.DEPOT]:
+                    distance = self.instance.distance_matrix[customer_id][node.id]
+                    min_route_distance = min(min_route_distance, distance)
+            
+            if min_route_distance < min_distance:
+                min_distance = min_route_distance
+                closest_route_idx = route_idx
                 
-                if move and move['total_saving'] > best_saving:
-                    best_move = move
-                    best_saving = move['total_saving']
-        
-        return best_move
+        return closest_route_idx
     
-    def _evaluate_insertion_move(self, solution: 'Solution', customer_id: int, 
-                               source_route_idx: int, target_route_idx: int, 
-                               insert_pos: int) -> dict:
-        """Evaluate a specific insertion move"""
-        # Create temporary copies to test the move
+    def _calculate_reinsertion_saving(self, solution: 'Solution', customer_id: int, 
+                                    current_route_idx: int, target_route_idx: int) -> float:
+        """Calculate total cost saving for reinserting customer from current route to target route"""
+        
+        # Calculate saving from removing customer from current route
+        removal_saving = self._calculate_removal_saving_from_route(
+            solution, customer_id, current_route_idx
+        )
+        
+        # Calculate cost of inserting customer into target route
+        insertion_cost = self._calculate_insertion_cost(
+            solution, customer_id, target_route_idx
+        )
+        
+        # Total saving = removal_saving - insertion_cost
+        return removal_saving - insertion_cost
+    
+    def _calculate_removal_saving_from_route(self, solution: 'Solution', customer_id: int, route_idx: int) -> float:
+        """Calculate saving from removing customer from specific route"""
+        route = solution.routes[route_idx]
+        
+        # Find customer position in route
+        customer_position = None
+        for i, node in enumerate(route.nodes):
+            if node.type == NodeType.CUSTOMER and node.id == customer_id:
+                customer_position = i
+                break
+                
+        if customer_position is None:
+            return 0.0
+            
+        return self._calculate_removal_saving(route, customer_position)
+    
+    def _calculate_insertion_cost(self, solution: 'Solution', customer_id: int, target_route_idx: int) -> float:
+        """Calculate cost of inserting customer into target route at best position"""
+        target_route = solution.routes[target_route_idx]
+        customer_node = self.instance.nodes[customer_id]
+        
+        if not target_route.nodes:
+            return 0.0
+            
+        min_insertion_cost = float('inf')
+        
+        # Try inserting at each position in the route (excluding depot positions)
+        for i in range(1, len(target_route.nodes)):
+            # Calculate insertion cost at position i
+            insertion_cost = self._calculate_insertion_cost_at_position(
+                target_route, customer_node, i
+            )
+            min_insertion_cost = min(min_insertion_cost, insertion_cost)
+            
+        return min_insertion_cost
+    
+    def _calculate_insertion_cost_at_position(self, route: Route, customer_node: Node, position: int) -> float:
+        """Calculate cost of inserting customer at specific position in route"""
+        if position <= 0 or position >= len(route.nodes):
+            return float('inf')
+            
+        prev_node = route.nodes[position - 1]
+        next_node = route.nodes[position]
+        
+        # Current distance in route
+        current_dist = self.instance.distance_matrix[prev_node.id][next_node.id]
+        
+        # New distances after insertion
+        new_dist1 = self.instance.distance_matrix[prev_node.id][customer_node.id]
+        new_dist2 = self.instance.distance_matrix[customer_node.id][next_node.id]
+        
+        # Additional distance cost
+        distance_cost = new_dist1 + new_dist2 - current_dist
+        
+        # Additional cost from potential recharge needs
+        recharge_cost = self._calculate_recharge_cost_for_insertion(route, customer_node, position)
+        
+        return distance_cost + recharge_cost
+    
+    def _calculate_recharge_cost_for_insertion(self, route: Route, customer_node: Node, position: int) -> float:
+        """Calculate additional recharge cost needed for inserting customer"""
+        # This is a simplified calculation - in practice, you might need to
+        # check if additional recharging is needed and calculate the cost
+        return 0.0  # Placeholder - implement based on energy constraints
+    
+    def _apply_reinsertion(self, solution: 'Solution', customer_id: int, 
+                          current_route_idx: int, target_route_idx: int) -> bool:
+        """Apply the reinsertion move if it's feasible"""
+        
+        # Create a copy of the solution to test feasibility
         temp_solution = self._copy_solution(solution)
         
-        # Remove customer from source route
-        source_route = temp_solution.routes[source_route_idx]
-        customer_node = None
-        customer_idx = None
-        
-        for node_idx, node in enumerate(source_route.nodes):
-            if node.id == customer_id and node.type == NodeType.CUSTOMER:
-                customer_node = node
-                customer_idx = node_idx
-                break
-        
-        if customer_idx is None:
-            return None
+        # Remove customer from current route
+        if not self._remove_customer_from_route(temp_solution, customer_id, current_route_idx):
+            return False
             
-        # Remove customer from source route
-        source_route.nodes.pop(customer_idx)
+        # Find best insertion position in target route
+        best_position = self._find_best_insertion_position(
+            temp_solution, customer_id, target_route_idx
+        )
         
-        # Insert customer into target route
-        target_route = temp_solution.routes[target_route_idx]
-        target_route.nodes.insert(insert_pos, customer_node)
-        
-        # Evaluate both routes
-        source_route.evaluate(self.instance)
-        target_route.evaluate(self.instance)
-        
-        # Check if both routes are feasible
-        if not source_route.is_feasible or not target_route.is_feasible:
-            return None
+        if best_position is None:
+            return False
             
-        # Calculate total saving including recharge elimination
-        original_source_cost = solution.routes[source_route_idx].total_cost
-        original_target_cost = solution.routes[target_route_idx].total_cost
-        original_total = original_source_cost + original_target_cost
-        
-        new_total = source_route.total_cost + target_route.total_cost
-        total_saving = original_total - new_total
-        
-        return {
-            'customer_id': customer_id,
-            'source_route_idx': source_route_idx,
-            'target_route_idx': target_route_idx,
-            'insert_pos': insert_pos,
-            'total_saving': total_saving,
-            'customer_node': customer_node
-        }
-    
-    def _perform_move(self, solution: 'Solution', move: dict):
-        """Perform the reinsertion move on the solution"""
-        customer_id = move['customer_id']
-        source_route_idx = move['source_route_idx']
-        target_route_idx = move['target_route_idx']
-        insert_pos = move['insert_pos']
-        customer_node = move['customer_node']
-        
-        # Get the actual route objects from the solution using indices
-        source_route = solution.routes[source_route_idx]
-        target_route = solution.routes[target_route_idx]
-        
-        # Remove customer from source route
-        for node_idx, node in enumerate(source_route.nodes):
-            if node.id == customer_id and node.type == NodeType.CUSTOMER:
-                source_route.nodes.pop(node_idx)
-                break
-        
         # Insert customer into target route
-        target_route.nodes.insert(insert_pos, customer_node)
+        if not self._insert_customer_into_route(temp_solution, customer_id, target_route_idx, best_position):
+            return False
+            
+        # Evaluate the new solution
+        temp_solution.evaluate()
         
-        # Remove empty routes (if source route only has depot)
-        if len(source_route.nodes) <= 2:  # Only depot nodes
-            solution.routes.pop(source_route_idx)
-    
-    def _update_savings_after_move(self, customer_savings: List[Tuple[int, float]], move: dict, solution: 'Solution'):
-        """Update savings after a move is performed"""
-        # Remove the moved customer from savings
-        customer_savings[:] = [(c, s) for c, s in customer_savings if c != move['customer_id']]
-        
-        # Recalculate savings for all customers in affected routes
-        affected_routes = set()
-        if move['source_route_idx'] < len(solution.routes):
-            affected_routes.add(move['source_route_idx'])
-        if move['target_route_idx'] < len(solution.routes):
-            affected_routes.add(move['target_route_idx'])
-        
-        # Remove old savings for affected routes
-        customer_savings[:] = [(c, s) for c, s in customer_savings 
-                              if not self._is_customer_in_routes(c, solution, affected_routes)]
-        
-        # Add new savings for affected routes
-        for route_idx in affected_routes:
-            if route_idx < len(solution.routes):
-                route = solution.routes[route_idx]
-                for node_idx, node in enumerate(route.nodes):
-                    if node.type == NodeType.CUSTOMER:
-                        customer_id = node.id
-                        saving = self._calculate_removal_saving(route, node_idx)
-                        customer_savings.append((customer_id, saving))
-    
-    def _is_customer_in_routes(self, customer_id: int, solution: 'Solution', route_indices: set) -> bool:
-        """Check if a customer is in any of the specified routes"""
-        for route_idx in route_indices:
-            if route_idx < len(solution.routes):
-                route = solution.routes[route_idx]
-                for node in route.nodes:
-                    if node.id == customer_id and node.type == NodeType.CUSTOMER:
-                        return True
+        # Check if the new solution is feasible and better
+        if temp_solution.is_feasible and self._is_improvement(solution, temp_solution):
+            # Apply the move to the original solution
+            self._remove_customer_from_route(solution, customer_id, current_route_idx)
+            self._insert_customer_into_route(solution, customer_id, target_route_idx, best_position)
+            solution.evaluate()
+            return True
+            
         return False
     
     def _copy_solution(self, solution: 'Solution') -> 'Solution':
         """Create a deep copy of the solution for testing moves"""
-        from EVRP.solution import Solution
+        from copy import deepcopy
+        return deepcopy(solution)
+    
+    def _remove_customer_from_route(self, solution: 'Solution', customer_id: int, route_idx: int) -> bool:
+        """Remove customer from specified route"""
+        route = solution.routes[route_idx]
         
-        new_solution = Solution(solution.instance)
-        new_solution.routes = []
+        # Find and remove customer
+        for i, node in enumerate(route.nodes):
+            if node.type == NodeType.CUSTOMER and node.id == customer_id:
+                route.nodes.pop(i)
+                return True
+                
+        return False
+    
+    def _find_best_insertion_position(self, solution: 'Solution', customer_id: int, target_route_idx: int) -> int:
+        """Find the best position to insert customer in target route"""
+        target_route = solution.routes[target_route_idx]
         
-        for route in solution.routes:
-            new_route = Route()
-            new_route.nodes = route.nodes.copy()
-            new_route.charging_decisions = route.charging_decisions.copy()
-            new_solution.routes.append(new_route)
+        if not target_route.nodes:
+            return None
+            
+        best_position = None
+        min_cost = float('inf')
         
-        return new_solution
+        # Try each possible position
+        for i in range(1, len(target_route.nodes)):
+            cost = self._calculate_insertion_cost_at_position(
+                target_route, self.instance.nodes[customer_id], i
+            )
+            if cost < min_cost:
+                min_cost = cost
+                best_position = i
+                
+        return best_position
+    
+    def _insert_customer_into_route(self, solution: 'Solution', customer_id: int, 
+                                   target_route_idx: int, position: int) -> bool:
+        """Insert customer into target route at specified position"""
+        target_route = solution.routes[target_route_idx]
+        customer_node = self.instance.nodes[customer_id]
+        
+        if position <= 0 or position > len(target_route.nodes):
+            return False
+            
+        target_route.nodes.insert(position, customer_node)
+        return True
+    
+    def _is_improvement(self, original_solution: 'Solution', new_solution: 'Solution') -> bool:
+        """Check if new solution is an improvement over original"""
+        # For EVRP, we can consider multiple objectives
+        # Here we use a simple weighted sum approach
+        original_cost = original_solution.total_cost + original_solution.total_distance * 0.1
+        new_cost = new_solution.total_cost + new_solution.total_distance * 0.1
+        
+        return new_cost < original_cost
+    
+    def _update_savings_for_affected_routes(self, solution: 'Solution', 
+                                          customer_savings: List[Tuple[int, float]], 
+                                          current_route_idx: int, target_route_idx: int):
+        """Update savings for customers in routes affected by the move"""
+        # Get customers in affected routes
+        affected_customers = set()
+        
+        # Add customers from current route (source route)
+        for node in solution.routes[current_route_idx].nodes:
+            if node.type == NodeType.CUSTOMER:
+                affected_customers.add(node.id)
+        
+        # Add customers from target route
+        for node in solution.routes[target_route_idx].nodes:
+            if node.type == NodeType.CUSTOMER:
+                affected_customers.add(node.id)
+        
+        # Update savings for affected customers
+        updated_savings = []
+        for customer_id, old_saving in customer_savings:
+            if customer_id in affected_customers:
+                # Recalculate saving for this customer
+                new_saving = self._calculate_removal_saving_from_route(
+                    solution, customer_id, 
+                    self._find_customer_route(solution, customer_id)
+                )
+                updated_savings.append((customer_id, new_saving))
+            else:
+                # Keep old saving for unaffected customers
+                updated_savings.append((customer_id, old_saving))
+        
+        # Update the customer_savings list
+        customer_savings.clear()
+        customer_savings.extend(updated_savings)
+        
+        # Sort again by updated savings
+        customer_savings.sort(key=lambda x: x[1], reverse=True)
+    

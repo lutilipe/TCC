@@ -8,64 +8,9 @@ from EVRP.classes.technology import Technology
 if TYPE_CHECKING:
     from EVRP.solution import Solution
 
-""" 
-if one route of a feasible solution visits at least one recharge station, it may be improved by optimally locating one single
-recharge at a certain point. Following this idea, the operator Recharge Relocation is intended to ﬁnd, if needed (and possible),
-the optimal location of a single recharge point in a route, without modifying the sequence of visits to the customers. This is
-explained in Algorithm.
-\begin{algorithm}[H]
-\caption{Recharge Relocation (RR)}
-\begin{algorithmic}[1]
-\REQUIRE $S$: Initial feasible solution.
-\ENSURE $S'$: Feasible solution produced.
-\STATE Set $S' \gets S$.
-\FOR{each route $r$ in $S$}
-    \STATE Let $(p_1, \cdots, p_h)$ be the sequence of customers of route $r$, excluding recharge stations ($p_1$ and $p_h$ are necessarily the depot).
-    \STATE Calculate $l := \sum_{i=1}^{h-1} d(p_i, p_{i+1})$ and set $r' \gets r$.
-    \IF{$l > AT$}
-        \STATE Calculate the interval $[a, b]$ in which a single recharge station could be located, where
-        \[
-        a := \min\{s = 1, \cdots, h-1 \mid \sum_{i=h-s+1}^{h} d(p_{i-1}, p_i) \leq AT \}, \quad
-        b := \max\{u = 2, \cdots, h \mid \sum_{i=1}^{u-1} d(p_i, p_{i+1}) \leq AT \}.
-        \]
-        \IF{$a \leq b$}
-            \STATE For each $i \in [a, b]$ and each recharge station $c$ reachable from $p_i$, calculate the minimum amount of recharge needed to complete the route $(p_1, \cdots, p_i, c, p_{i+1}, \cdots, p_h)$, using the cheapest technology available verifying the maximum duration constraint. Choose the cheapest alternative and update $r'$.
-        \ENDIF
-    \ENDIF
-\ENDFOR
-\end{algorithmic}
-\end{algorithm}
-"""
-
 class RechargeRealocation:
     def __init__(self, instance: Instance):
         self.instance = instance
-
-    def perturbation(self, solution: 'Solution') -> bool:
-        """
-        Apply recharge relocation to optimize recharge station placement in routes.
-        
-        Args:
-            solution: The solution to optimize
-            
-        Returns:
-            bool: True if any improvement was made, False otherwise
-        """
-        improved = False
-        
-        for route in solution.routes:
-            if self._optimize_route(route):
-                improved = True
-        
-        if improved:
-            # Re-evaluate the entire solution to ensure all routes are feasible
-            solution.evaluate()
-            
-            # Double-check that the solution is still feasible after all modifications
-            if not solution.is_feasible:
-                print("Warning: Recharge relocation made solution infeasible")
-        
-        return solution
 
     def local_search(self, solution: 'Solution') -> bool:
         """
@@ -114,7 +59,7 @@ class RechargeRealocation:
         
         # AT is the maximum range (battery capacity / consumption rate)
         AT = self.instance.vehicle.max_range
-        
+
         if total_distance <= AT:
             for idx, node in enumerate(route.nodes):
                 if node.type == NodeType.STATION:
@@ -130,22 +75,19 @@ class RechargeRealocation:
             return False 
         
         a, b = self._find_recharge_interval(customer_sequence, AT)
-        
         if a > b:
             return False
         
         best_improvement = self._find_best_recharge_option(customer_sequence, a, b, route)
         
         if best_improvement:
-            # Apply the optimization
             self._apply_recharge_optimization(route, customer_sequence, best_improvement)
+            route.evaluate(self.instance)
             
-            # Verify that the modified route is still feasible
-            if not self._verify_route_feasibility(route):
-                # If not feasible, revert the changes
+            if not route.is_feasible:
                 self._revert_recharge_optimization(route, customer_sequence, best_improvement)
+                route.evaluate(self.instance)
                 return False
-            
             return True
         
         return False
@@ -180,24 +122,28 @@ class RechargeRealocation:
         """
         h = len(customer_sequence)
         
-        # Find 'a': minimum s such that sum from h-s+1 to h <= AT
         a = h
-        cumulative_distance = 0
-        for s in range(1, h):
-            cumulative_distance += self.instance.distance_matrix[customer_sequence[h-s-1].id][customer_sequence[h-s].id]
+        for start_segment in range(1, h-1):
+            cumulative_distance = 0
+            for i in range(start_segment, h):
+                cumulative_distance += self.instance.distance_matrix[customer_sequence[i-1].id][customer_sequence[i].id]
+            
             if cumulative_distance <= AT:
-                a = h - s
+                a = start_segment
                 break
+            
         
-        # Find 'b': maximum u such that sum from 1 to u-1 <= AT
         b = 1
-        cumulative_distance = 0
-        for u in range(2, h + 1):
-            cumulative_distance += self.instance.distance_matrix[customer_sequence[u-2].id][customer_sequence[u-1].id]
+        for start_segment in range(2, h):
+            cumulative_distance = 0
+            for i in range(1, start_segment):
+                cumulative_distance += self.instance.distance_matrix[customer_sequence[i].id][customer_sequence[i+1].id]
+            
             if cumulative_distance <= AT:
-                b = u
-            else:
-                break
+                b = start_segment
+        
+        if a > b:
+            return h, 0  # Return invalid interval
         
         return a, b
     
@@ -409,77 +355,6 @@ class RechargeRealocation:
             if node.id == target_node.id:
                 return i
         return -1
-    
-    def _verify_route_feasibility(self, route: Route) -> bool:
-        """
-        Verify that a route is feasible after modification.
-        This checks all constraints: battery, capacity, time, and structure.
-        
-        Args:
-            route: The route to verify
-            
-        Returns:
-            bool: True if the route is feasible, False otherwise
-        """
-        if not route.nodes:
-            return False
-        
-        # Check route structure (must start and end at depot)
-        depot_id = next((n.id for n in self.instance.nodes if n.type == NodeType.DEPOT), None)
-        if depot_id is None or route.nodes[0].id != depot_id or route.nodes[-1].id != depot_id:
-            return False
-        
-        # Simulate the route to check all constraints
-        current_battery = self.instance.vehicle.battery_capacity
-        current_load = 0
-        current_time = 0
-        prev_node_id = depot_id
-        
-        for i, node in enumerate(route.nodes[1:], 1):
-            node_id = node.id
-            
-            # Check travel distance and energy consumption
-            travel_dist = self.instance.distance_matrix[prev_node_id][node_id]
-            travel_time = self.instance.time_matrix[prev_node_id][node_id]
-            energy_consumed = travel_dist * self.instance.vehicle.consumption_rate
-            
-            # Check battery constraint
-            if current_battery < energy_consumed:
-                return False
-            
-            current_battery -= energy_consumed
-            current_time += travel_time
-            
-            # Handle customer or recharge station
-            if node.type == NodeType.CUSTOMER:
-                current_load += node.demand
-                current_time += node.service_time
-                
-                # Check capacity constraint
-                if current_load > self.instance.vehicle.capacity:
-                    return False
-                    
-            elif node.type == NodeType.STATION:
-                if node_id in route.charging_decisions:
-                    tech, energy_to_charge = route.charging_decisions[node_id]
-                    
-                    # Check if technology is available at this station
-                    tech_found = any(t.id == tech.id for t in node.technologies)
-                    if not tech_found:
-                        return False
-                    
-                    # Apply charging
-                    charging_time = energy_to_charge / tech.power
-                    current_time += self.instance.charging_fixed_time + charging_time
-                    current_battery = min(current_battery + energy_to_charge, self.instance.vehicle.battery_capacity)
-            
-            prev_node_id = node_id
-        
-        # Check time constraint
-        if current_time > self.instance.max_route_duration:
-            return False
-        
-        return True
     
     def _revert_recharge_optimization(self, route: Route, customer_sequence: List[Node], 
                                     recharge_option: dict) -> None:

@@ -9,115 +9,195 @@ if TYPE_CHECKING:
     from EVRP.solution import Solution
 
 class TwoOptStar:
-    def __init__(self, instance: Instance, max_iter = 3):
+    def __init__(self, instance: Instance, max_iter: int = 3):
         self.instance = instance
         self.max_iter = max_iter
 
-    def local_search(self, solution: 'Solution') -> bool:
+    def run(self, solution: 'Solution') -> bool:
         """
-        Apply 2-opt star to all route pairs in a solution.
+        Apply 2-opt* to two randomly selected routes in a solution.
         Returns True if any improvement was made, False otherwise.
         """
         if len(solution.routes) < 2:
             return False
         
-        return self.two_opt_star(solution)
+        # Select two different routes randomly
+        route_indices = random.sample(range(len(solution.routes)), 2)
+        route1_idx, route2_idx = route_indices[0], route_indices[1]
+        
+        route1 = solution.routes[route1_idx]
+        route2 = solution.routes[route2_idx]
+        
+        return self.two_opt_star(route1, route2)
+    
+    def local_search(self, solution: 'Solution') -> bool:
+        """
+        Apply 2-opt* perturbation to all pairs of routes in a solution.
+        Returns True if any improvement was made, False otherwise.
+        """
+        return self.run(solution)
     
     def perturbation(self, solution: 'Solution') -> 'Solution':
         """
-        Apply 2-opt star perturbation to all route pairs in a solution.
+        Apply 2-opt* perturbation to all pairs of routes in a solution.
+        Returns the modified solution.
         """
         for _ in range(self.max_iter):
-            self.local_search(solution)
+            self.run(solution)
         
         return solution
     
-    def two_opt_star(self, solution: 'Solution') -> bool:
+    def two_opt_star(self, route1: Route, route2: Route) -> bool:
         """
-        Apply 2-opt star inter-route optimization using random selection.
-        Swaps tails between two routes to improve the solution.
+        Apply 2-opt* inter-route optimization between two routes.
+        
+        The 2-opt* operator works by:
+        1. Selecting two cutting points (i,j) in route1 and (k,l) in route2
+        2. Creating new routes by swapping the segments:
+           - New route1: [0...i] + [k...l] + [j+1...end]
+           - New route2: [0...k] + [i+1...j] + [l+1...end]
+        
         Returns True if any improvement was made, False otherwise.
         """
-        if len(solution.routes) < 2:
+        if len(route1.nodes) <= 2 or len(route2.nodes) <= 2:  # Need at least depot + 1 node + depot
+            return False
+            
+        best_route1 = copy.deepcopy(route1)
+        best_route2 = copy.deepcopy(route2)
+        improved = False
+        
+        # Try all possible 2-opt* swaps
+        for i in range(1, len(route1.nodes) - 1):  # Start after depot, end before depot
+            for j in range(i + 1, len(route1.nodes)):  # j can be depot
+                for k in range(1, len(route2.nodes) - 1):  # Start after depot, end before depot
+                    for l in range(k + 1, len(route2.nodes)):  # l can be depot
+                        # Create new routes by swapping segments
+                        new_route1, new_route2 = self._create_new_routes(
+                            route1, route2, i, j, k, l
+                        )
+                        
+                        if new_route1 is None or new_route2 is None:
+                            continue
+                        
+                        # Evaluate the new routes
+                        new_route1.evaluate(self.instance)
+                        new_route2.evaluate(self.instance)
+                        
+                        # Check if the new routes are feasible and better
+                        if (new_route1.is_feasible and new_route2.is_feasible and
+                            self._is_better_solution(new_route1, new_route2, best_route1, best_route2)):
+                            best_route1 = new_route1
+                            best_route2 = new_route2
+                            improved = True
+        
+        # Update the original routes if improvement was found
+        if improved:
+            route1.nodes = best_route1.nodes
+            route1.charging_decisions = best_route1.charging_decisions
+            route1.evaluate(self.instance)
+            
+            route2.nodes = best_route2.nodes
+            route2.charging_decisions = best_route2.charging_decisions
+            route2.evaluate(self.instance)
+            
+            return True
+        
+        return False
+    
+    def _create_new_routes(self, route1: Route, route2: Route, 
+                          i: int, j: int, k: int, l: int) -> Tuple[Route, Route]:
+        """
+        Create new routes by applying 2-opt* swap between segments.
+        
+        Args:
+            route1, route2: Original routes
+            i, j: Cutting points in route1 (segment [i+1...j] will be swapped)
+            k, l: Cutting points in route2 (segment [k+1...l] will be swapped)
+        
+        Returns:
+            Tuple of new routes, or (None, None) if invalid
+        """
+        try:
+            # Create new route1: [0...i] + [k+1...l] + [j+1...end]
+            new_route1 = Route()
+            new_route1.nodes = (route1.nodes[:i+1] + 
+                              route2.nodes[k+1:l+1] + 
+                              route1.nodes[j+1:])
+            
+            # Create new route2: [0...k] + [i+1...j] + [l+1...end]
+            new_route2 = Route()
+            new_route2.nodes = (route2.nodes[:k+1] + 
+                              route1.nodes[i+1:j+1] + 
+                              route2.nodes[l+1:])
+            
+            # Transfer charging decisions for the new routes
+            # Create sets of node IDs for each segment to identify which route they came from
+            route1_original_nodes = {node.id for node in route1.nodes}
+            route2_original_nodes = {node.id for node in route2.nodes}
+            
+            # For new_route1: transfer charging decisions based on which original route the station came from
+            new_route1.charging_decisions = {}
+            for node in new_route1.nodes:
+                if node.type == NodeType.STATION:
+                    if node.id in route1_original_nodes and node.id in route1.charging_decisions:
+                        new_route1.charging_decisions[node.id] = route1.charging_decisions[node.id]
+                    elif node.id in route2_original_nodes and node.id in route2.charging_decisions:
+                        new_route1.charging_decisions[node.id] = route2.charging_decisions[node.id]
+            
+            # For new_route2: transfer charging decisions based on which original route the station came from
+            new_route2.charging_decisions = {}
+            for node in new_route2.nodes:
+                if node.type == NodeType.STATION:
+                    if node.id in route1_original_nodes and node.id in route1.charging_decisions:
+                        new_route2.charging_decisions[node.id] = route1.charging_decisions[node.id]
+                    elif node.id in route2_original_nodes and node.id in route2.charging_decisions:
+                        new_route2.charging_decisions[node.id] = route2.charging_decisions[node.id]
+            
+            # Ensure both routes start and end at depot
+            depot_id = next((n.id for n in self.instance.nodes if n.type == NodeType.DEPOT), None)
+            if depot_id is None:
+                return None, None
+            
+            # Check if routes are valid (start and end at depot)
+            if (new_route1.nodes[0].id != depot_id or new_route1.nodes[-1].id != depot_id or
+                new_route2.nodes[0].id != depot_id or new_route2.nodes[-1].id != depot_id):
+                return None, None
+            
+            return new_route1, new_route2
+            
+        except (IndexError, AttributeError):
+            return None, None
+    
+    def _is_better_solution(self, new_route1: Route, new_route2: Route,
+                           current_route1: Route, current_route2: Route) -> bool:
+        """
+        Check if the new route pair is better than the current route pair.
+        
+        A solution is better if:
+        1. Both routes are feasible
+        2. The total distance or cost is reduced
+        """
+        # Check if both new routes are feasible
+        if not new_route1.is_feasible or not new_route2.is_feasible:
             return False
         
-        improved = True
-        total_improvements = 0
-        max_attempts = 50  # Maximum number of random attempts per iteration
+        # Check if both current routes are feasible
+        if not current_route1.is_feasible or not current_route2.is_feasible:
+            return True
         
-        while improved:
-            improved = False
-            attempts = 0
-            
-            while attempts < max_attempts and not improved:
-                attempts += 1
-                
-                # Randomly select two different routes
-                route_indices = random.sample(range(len(solution.routes)), 2)
-                i, j = route_indices[0], route_indices[1]
-                
-                route_a = solution.routes[i]
-                route_b = solution.routes[j]
-                
-                # Skip if routes are too short (need at least depot + 1 node + depot)
-                if len(route_a.nodes) <= 3 or len(route_b.nodes) <= 3:
-                    continue
-                
-                # Randomly select cut positions in both routes
-                cut_a = random.randint(1, len(route_a.nodes) - 2)  # Skip depot positions
-                cut_b = random.randint(1, len(route_b.nodes) - 2)  # Skip depot positions
-                
-                # Create new routes by swapping tails
-                new_route_a, new_route_b = self._swap_tails(route_a, route_b, cut_a, cut_b)
-                
-                # Evaluate the new routes
-                new_route_a.evaluate(self.instance)
-                new_route_b.evaluate(self.instance)
-                
-                # Check if both routes are feasible and better
-                if (new_route_a.is_feasible and new_route_b.is_feasible and
-                    self._is_improvement(route_a, route_b, new_route_a, new_route_b)):
-                    
-                    # Accept the swap
-                    route_a.nodes = new_route_a.nodes
-                    route_a.charging_decisions = new_route_a.charging_decisions
-                    route_a.evaluate(self.instance)
-                    
-                    route_b.nodes = new_route_b.nodes
-                    route_b.charging_decisions = new_route_b.charging_decisions
-                    route_b.evaluate(self.instance)
-                    
-                    improved = True
-                    total_improvements += 1
+        # Calculate total metrics for comparison
+        new_total_distance = new_route1.total_distance + new_route2.total_distance
+        new_total_cost = new_route1.total_cost + new_route2.total_cost
         
-        return total_improvements > 0
-    
-    def _swap_tails(self, route_a: Route, route_b: Route, cut_a: int, cut_b: int) -> Tuple[Route, Route]:
-        """
-        Create new routes by swapping tails after cut positions.
-        """
-        new_route_a = copy.deepcopy(route_a)
-        new_route_b = copy.deepcopy(route_b)
+        current_total_distance = current_route1.total_distance + current_route2.total_distance
+        current_total_cost = current_route1.total_cost + current_route2.total_cost
         
-        # Swap tails: route_a gets head of route_a + tail of route_b
-        # route_b gets head of route_b + tail of route_a
-        new_route_a.nodes = route_a.nodes[:cut_a] + route_b.nodes[cut_b:]
-        new_route_b.nodes = route_b.nodes[:cut_b] + route_a.nodes[cut_a:]
+        # Check if new solution dominates current solution
+        if (new_total_distance <= current_total_distance and
+            new_total_cost <= current_total_cost):
+            # Check if new solution is better in at least one objective
+            if (new_total_distance < current_total_distance or
+                new_total_cost < current_total_cost):
+                return True
         
-        return new_route_a, new_route_b
-    
-    def _is_improvement(self, old_route_a: Route, old_route_b: Route, 
-                       new_route_a: Route, new_route_b: Route) -> bool:
-        """
-        Check if the new route pair is better than the old one.
-        """
-        old_total_cost = old_route_a.total_cost + old_route_b.total_cost
-        old_total_distance = old_route_a.total_distance + old_route_b.total_distance
-        
-        new_total_cost = new_route_a.total_cost + new_route_b.total_cost
-        new_total_distance = new_route_a.total_distance + new_route_b.total_distance
-        
-        # Check if new solution is better (lower cost or distance)
-        return (new_total_cost < old_total_cost or 
-                (new_total_cost == old_total_cost and new_total_distance < old_total_distance))
-   
+        return False
