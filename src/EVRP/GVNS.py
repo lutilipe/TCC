@@ -82,7 +82,7 @@ class GVNS:
         """
         # Cria set com hash das soluções existentes
         existing_hashes = {self.get_solution_hash(sol) for sol in archive if sol.is_feasible}
-        original_feasible_count = len([sol for sol in archive if sol.is_feasible])
+        old_hashes = {self.get_solution_hash(sol) for sol in archive if sol.is_feasible}
         
         # Filtra novas soluções
         truly_new_solutions = []
@@ -112,18 +112,19 @@ class GVNS:
                 
             if self.is_non_dominated(sol, archive):
                 non_dominated.append(sol)
-                processed_hashes.add(sol_hash)
                 print(sol_hash)
+                processed_hashes.add(sol_hash)
         
         # Apply size limit if necessary
         if len(non_dominated) > self.na:
-            non_dominated.sort(key=lambda x: (x.total_distance, x.num_vehicles_used, x.total_cost))
+            non_dominated.sort(key=lambda x: (x.total_distance, x.total_cost))
             non_dominated = non_dominated[:self.na]
 
         # Detecta mudança
-        old_hashes = {self.get_solution_hash(sol) for sol in archive if sol.is_feasible}
         new_hashes = {self.get_solution_hash(sol) for sol in non_dominated if sol.is_feasible}
-        changed = False
+        changed = new_hashes != old_hashes
+
+        print(changed)
 
         return non_dominated, changed
     

@@ -111,13 +111,22 @@ def process_all_instances():
                       f"Veículos={best_solution.num_vehicles_used}, "
                       f"Custo={best_solution.total_cost:.2f}")
                 
-                # Gera visualização da melhor solução
+                # Gera visualizações para todas as soluções
                 try:
-                    plot_file = f"output/{instance_name}_plot.png"
-                    plot_solution(instance, best_solution, save_path=plot_file)
-                    print(f"  Visualização salva em {plot_file}")
+                    # Cria diretório específico para esta instância
+                    instance_output_dir = f"output/{instance_name}"
+                    os.makedirs(instance_output_dir, exist_ok=True)
+                    
+                    # Plota cada solução
+                    for i, sol in enumerate(final_solutions):
+                        rank = i + 1
+                        plot_file = f"{instance_output_dir}/rank{rank}.png"
+                        plot_solution(instance, sol, save_path=plot_file)
+                        print(f"  Rank {rank}: Visualização salva em {plot_file}")
+                    
+                    print(f"  ✓ Todas as {len(final_solutions)} visualizações salvas em {instance_output_dir}/")
                 except Exception as e:
-                    print(f"  Erro ao gerar visualização: {e}")
+                    print(f"  Erro ao gerar visualizações: {e}")
                     
             else:
                 print("✗ Nenhuma solução encontrada")

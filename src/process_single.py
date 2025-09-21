@@ -1,3 +1,4 @@
+import os
 from EVRP import GVNS
 from EVRP.constructive_heuristic import ConstructiveHeuristic
 from EVRP.create_instance import create_evrp_instance
@@ -55,7 +56,7 @@ def process_single_instance(instance_file):
             RechargeRealocation(instance)
         ],
         perturbation=[
-            Reinsertion(instance, max_iterations=10),
+            TwoOptStar(instance, max_iter=10),
             TwoOpt(instance, max_iter=10)
         ]
     )
@@ -74,11 +75,11 @@ def process_single_instance(instance_file):
         # Ordena soluções por qualidade
         final_solutions.sort(key=lambda x: (x.total_cost, x.total_distance))
         
-        print("\nTop 5 melhores soluções:")
+        print("\nTop melhores soluções:")
         print("Rank | Distância | Veículos | Custo   | Factível")
         print("-" * 50)
         
-        for i, sol in enumerate(final_solutions[:5]):
+        for i, sol in enumerate(final_solutions):
             print(f"{i+1:4d} | {sol.total_distance:9.2f} | {sol.num_vehicles_used:8d} | {sol.total_cost:6.2f} | {'Sim' if sol.is_feasible else 'Não'}")
         
         best_solution = final_solutions[0]
@@ -88,13 +89,24 @@ def process_single_instance(instance_file):
         print(f"  Custo total: {best_solution.total_cost:.2f}")
         print(f"  Solução factível: {'Sim' if best_solution.is_feasible else 'Não'}")
         
-        # Plota a melhor solução
-        print(f"\nGerando visualização da melhor solução...")
+        # Plota todas as soluções
+        print(f"\nGerando visualizações para todas as soluções...")
         try:
-            plot_solution(instance, best_solution)
-            print("Visualização salva com sucesso!")
+            # Cria diretório de saída baseado no nome do arquivo de entrada
+            instance_name = os.path.basename(instance_file).replace('.txt', '')
+            output_dir = f"output/{instance_name}"
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Plota cada solução
+            for i, sol in enumerate(final_solutions):
+                rank = i + 1
+                plot_file = f"{output_dir}/rank{rank}.png"
+                plot_solution(instance, sol, save_path=plot_file)
+                print(f"  Rank {rank}: Visualização salva em {plot_file}")
+            
+            print(f"Todas as {len(final_solutions)} visualizações salvas com sucesso!")
         except Exception as e:
-            print(f"Erro ao gerar visualização: {e}")
+            print(f"Erro ao gerar visualizações: {e}")
         
         print(f"\nSalvando soluções em arquivo...")
         try:

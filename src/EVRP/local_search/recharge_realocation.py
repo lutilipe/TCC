@@ -64,7 +64,8 @@ class RechargeRealocation:
             for idx, node in enumerate(route.nodes):
                 if node.type == NodeType.STATION:
                     route.nodes.remove(node)
-                    route.charging_decisions.pop(node.id)
+                    if node.id in route.charging_decisions:
+                        route.charging_decisions.pop(node.id)
                     route.evaluate(self.instance)
                     if not route.is_feasible:
                         route.nodes.insert(idx, node)
