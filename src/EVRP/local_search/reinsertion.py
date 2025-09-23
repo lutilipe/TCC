@@ -197,7 +197,6 @@ class Reinsertion:
                     # Remove the moved customer from the savings list
                     customer_savings = [(cid, g) for cid, g in customer_savings 
                                       if cid != selected_move['customer_id']]
-        print(improved)
         return improved
     
     def _calculate_customer_savings(self, solution: 'Solution') -> List[Tuple[int, float]]:

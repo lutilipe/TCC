@@ -12,6 +12,7 @@ from EVRP.local_search.exchange import Exchange
 from EVRP.local_search.or_opt import OrOpt
 from EVRP.local_search.three_opt import ThreeOpt
 from EVRP.local_search.shift import Shift
+from EVRP.local_search.depot_reassignment import DepotReassignment
 from utils import plot_solution, print_instance_summary
 
 def process_single_instance(instance_file):
@@ -56,6 +57,7 @@ def process_single_instance(instance_file):
             RechargeRealocation(instance)
         ],
         perturbation=[
+            DepotReassignment(instance, k=2),  # Depot reassignment shake operator
             TwoOptStar(instance, max_iter=10),
             TwoOpt(instance, max_iter=10)
         ]

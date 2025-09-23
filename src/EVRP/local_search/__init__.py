@@ -1,22 +1,24 @@
-# Módulo de busca local para EVRP
-from .two_opt import TwoOpt
-from .two_opt_star import TwoOptStar
-from .reinsertion import Reinsertion
-from .recharge_realocation import RechargeRealocation
-from .relocate import Relocate
+# Import all local search operators for easy access
+from .depot_reassignment import DepotReassignment
 from .exchange import Exchange
 from .or_opt import OrOpt
-from .three_opt import ThreeOpt
+from .recharge_realocation import RechargeRealocation
+from .reinsertion import Reinsertion
+from .relocate import Relocate
 from .shift import Shift
+from .three_opt import ThreeOpt
+from .two_opt import TwoOpt
+from .two_opt_star import TwoOptStar
 
 __all__ = [
-    'TwoOpt',
-    'TwoOptStar', 
-    'Reinsertion',
-    'RechargeRealocation',
-    'Relocate',
-    'Exchange',
+    'DepotReassignment',
+    'Exchange', 
     'OrOpt',
+    'RechargeRealocation',
+    'Reinsertion',
+    'Relocate',
+    'Shift',
     'ThreeOpt',
-    'Shift'
+    'TwoOpt',
+    'TwoOptStar'
 ]

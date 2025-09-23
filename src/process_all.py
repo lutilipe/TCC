@@ -6,6 +6,7 @@ from EVRP.local_search.recharge_realocation import RechargeRealocation
 from EVRP.local_search.reinsertion import Reinsertion
 from EVRP.local_search.two_opt import TwoOpt
 from EVRP.local_search.two_opt_star import TwoOptStar
+from EVRP.local_search.depot_reassignment import DepotReassignment
 from EVRP.GVNS import GVNS
 from utils.plot_solution import plot_solution
 from utils.summary import print_instance_summary
@@ -74,7 +75,11 @@ def process_all_instances():
                 ls_max_iter=500, # Máximo de tentativas de busca local
                 max_evaluations=80,  # Máximo de avaliações,
                 local_search=[twoOpt, twoOptStar, rechargeRealocation],
-                perturbation=[twoOpt, twoOptStar]
+                perturbation=[
+                    DepotReassignment(instance, k=2),  # Depot reassignment shake operator
+                    twoOpt, 
+                    twoOptStar
+                ]
             )
             
             final_solutions = gvns.run(initial_solutions)
