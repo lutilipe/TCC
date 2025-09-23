@@ -11,7 +11,7 @@ def plot_gvrp_instance(instance: Instance):
     Args:
         instance (Instance): Instância do problema GVRP
     """
-    depot = [n for n in instance.nodes if n.type == NodeType.DEPOT][0]
+    depots = [n for n in instance.nodes if n.type == NodeType.DEPOT]
     customers = [n for n in instance.nodes if n.type == NodeType.CUSTOMER]
     stations = [n for n in instance.nodes if n.type == NodeType.STATION]
 
@@ -26,9 +26,11 @@ def plot_gvrp_instance(instance: Instance):
     station_y = [s.y for s in stations]
     ax.scatter(station_x, station_y, c="#d62728", marker="^", s=90, label="Estações de Recarga", edgecolor="black")
 
-    ax.scatter(depot.x, depot.y, c="#2ca02c", marker="s", s=150, label="Depósito", edgecolor="black")
-    ax.annotate("Depósito", (depot.x, depot.y), textcoords="offset points", xytext=(0,10),
-                ha="center", fontsize=10, weight="bold", path_effects=[pe.withStroke(linewidth=3, foreground="white")])
+    if depots:
+        ax.scatter([d.x for d in depots], [d.y for d in depots], c="#2ca02c", marker="s", s=150, label="Depósitos", edgecolor="black")
+        for d in depots:
+            ax.annotate(f"Depot {d.id}", (d.x, d.y), textcoords="offset points", xytext=(0,10),
+                        ha="center", fontsize=10, weight="bold", path_effects=[pe.withStroke(linewidth=3, foreground="white")])
 
     ax.set_title("Instância do Problema GVRP", fontsize=16, weight="bold")
     ax.set_xlabel("Coordenada X", fontsize=12)
@@ -52,11 +54,14 @@ def print_instance_summary(instance: Instance) -> None:
     print("===== Instância EVRP Sumário =====")
     print(f"Total de Nós: {len(instance.nodes)}")
 
-    depot = next((n for n in instance.nodes if n.type == NodeType.DEPOT), None)
+    depots = [n for n in instance.nodes if n.type == NodeType.DEPOT]
     customers = [n for n in instance.nodes if n.type == NodeType.CUSTOMER]
     stations = [n for n in instance.nodes if n.type == NodeType.STATION]
 
-    print(f"- Depósito: ID {depot.id} at ({depot.x:.2f}, {depot.y:.2f}) | Tecnologias: {depot.technologies[0].id}")
+    print(f"- Depósitos: {len(depots)}")
+    for d in depots:
+        techs = ", ".join(TECH_NAME[t.id] for t in getattr(d, 'technologies', [])) if getattr(d, 'technologies', []) else "-"
+        print(f"  · ID {d.id} em ({d.x:.2f}, {d.y:.2f}) | Tecnologias: {techs}")
     print(f"- Clientes: {len(customers)}")
     for c in customers[:3]:
         print(f"  · ID {c.id} em ({c.x:.2f}, {c.y:.2f}) | Demanda: {c.demand} | Tempo de Serviço: {c.service_time} h")

@@ -28,18 +28,14 @@ class Route:
         current_load = 0
         current_time = 0
         
-        depot_id = next((n.id for n in instance.nodes if n.type == NodeType.DEPOT), None)
-        if depot_id is None:
+        # First and last nodes must be depots
+        if not self.nodes or self.nodes[0].type != NodeType.DEPOT or self.nodes[-1].type != NodeType.DEPOT:
             self.is_feasible = False
-            ##print(f"Route: No depot found")
             return
-        
-        if self.nodes[0].id != depot_id or self.nodes[-1].id != depot_id:
-            self.is_feasible = False
-            #print(f"Route: Route must start and end at depot")
-            return
-        
-        prev_node_id = depot_id
+
+        start_depot_id = self.nodes[0].id
+
+        prev_node_id = start_depot_id
         
         for i, node in enumerate(self.nodes[1:], 1):
             node_id = node.id

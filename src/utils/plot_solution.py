@@ -16,7 +16,7 @@ def plot_solution(instance: Instance, solution: Solution, save_path: str = None)
         solution: Solução a ser plotada
         save_path: Caminho opcional para salvar a figura (se None, usa o padrão)
     """
-    depot = next((n for n in instance.nodes if n.type == NodeType.DEPOT), None)
+    depots = [n for n in instance.nodes if n.type == NodeType.DEPOT]
     customers = [n for n in instance.nodes if n.type == NodeType.CUSTOMER]
     stations = [n for n in instance.nodes if n.type == NodeType.STATION]
 
@@ -26,11 +26,13 @@ def plot_solution(instance: Instance, solution: Solution, save_path: str = None)
     # Make the plot occupy all available space
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
-    ax.scatter(depot.x, depot.y, c='#2ca02c', marker='s', s=180,
-               label='Depósito', edgecolor='black', zorder=5)
-    ax.annotate("Depósito", (depot.x, depot.y), textcoords="offset points", xytext=(0,15),
-                ha='center', fontsize=11, weight='bold',
-                path_effects=[withStroke(linewidth=3, foreground="white")], zorder=5)
+    if depots:
+        ax.scatter([d.x for d in depots], [d.y for d in depots], c='#2ca02c', marker='s', s=180,
+                   label='Depósitos', edgecolor='black', zorder=5)
+        for i, d in enumerate(depots):
+            ax.annotate(f"D{d.id}", (d.x, d.y), textcoords="offset points", xytext=(0,15),
+                        ha='center', fontsize=11, weight='bold',
+                        path_effects=[withStroke(linewidth=3, foreground="white")], zorder=5)
 
     ax.scatter([c.x for c in customers], [c.y for c in customers],
                c='#1f77b4', marker='o', s=70, label='Clientes',
@@ -62,8 +64,8 @@ def plot_solution(instance: Instance, solution: Solution, save_path: str = None)
                      alpha=0.9, zorder=2)
 
         for idx, node in enumerate(route.nodes):
-            if node.type == 'station' and idx in route.charging_decisions:
-                tech, energy = route.charging_decisions[idx]
+            if node.type == NodeType.STATION and node.id in route.charging_decisions:
+                tech, energy = route.charging_decisions[node.id]
                 ax.scatter(node.x, node.y, s=220, marker='*',
                            color='gold', edgecolor='black', zorder=6)
                 ax.annotate(f"{tech.id} ({energy:.1f}kWh)", (node.x, node.y),

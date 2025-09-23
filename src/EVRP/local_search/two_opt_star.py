@@ -153,14 +153,15 @@ class TwoOptStar:
                     elif node.id in route2_original_nodes and node.id in route2.charging_decisions:
                         new_route2.charging_decisions[node.id] = route2.charging_decisions[node.id]
             
-            # Ensure both routes start and end at depot
-            depot_id = next((n.id for n in self.instance.nodes if n.type == NodeType.DEPOT), None)
-            if depot_id is None:
-                return None, None
-            
-            # Check if routes are valid (start and end at depot)
-            if (new_route1.nodes[0].id != depot_id or new_route1.nodes[-1].id != depot_id or
-                new_route2.nodes[0].id != depot_id or new_route2.nodes[-1].id != depot_id):
+            # Ensure both routes start and end at a depot and return to the same start depot
+            def is_valid_depot_loop(route: Route) -> bool:
+                if not route.nodes:
+                    return False
+                if route.nodes[0].type != NodeType.DEPOT or route.nodes[-1].type != NodeType.DEPOT:
+                    return False
+                return True
+
+            if not is_valid_depot_loop(new_route1) or not is_valid_depot_loop(new_route2):
                 return None, None
             
             return new_route1, new_route2

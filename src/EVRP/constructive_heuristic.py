@@ -19,7 +19,7 @@ class ConstructiveHeuristic:
         
         self.customers = {}
         self.stations = {}
-        self.depot = None
+        self.depots = {}
         
         for node in instance.nodes:
             if node.type == NodeType.CUSTOMER:
@@ -27,7 +27,7 @@ class ConstructiveHeuristic:
             elif node.type == NodeType.STATION:
                 self.stations[node.id] = node
             elif node.type == NodeType.DEPOT:
-                self.depot = node
+                self.depots[node.id] = node
         
     def _precompute_closest_lists(self):
         all_node_ids = [node.id for node in self.instance.nodes]
@@ -79,7 +79,7 @@ class ConstructiveHeuristic:
         return True
     
     def _can_reach_depot_via_station(self, from_id: int, station_id: int, current_battery: float, 
-                                   current_load: float, current_time: float) -> bool:
+                                   current_load: float, current_time: float, target_depot_id: int) -> bool:
         """Check if we can reach depot via a specific recharge station"""
         # Check if we can reach the station
         if not self._can_reach_directly(from_id, station_id, current_battery, current_load, current_time):
@@ -94,8 +94,8 @@ class ConstructiveHeuristic:
         time_at_station = current_time + time_to_station
         
         # Get available technologies at station
-        if station_id == self.depot.id and self.depot.technologies:
-            available_techs = self.depot.technologies
+        if station_id in self.depots and self.depots[station_id].technologies:
+            available_techs = self.depots[station_id].technologies
         elif station_id in self.stations:
             available_techs = self.stations[station_id].technologies
         else:
@@ -123,18 +123,20 @@ class ConstructiveHeuristic:
             time_after_recharge = time_at_station + self.instance.charging_fixed_time + recharge_time
             
             # Check if we can reach depot with this recharge
-            if self._can_reach_directly(station_id, self.depot.id, battery_after_recharge, 
+            if self._can_reach_directly(station_id, target_depot_id, battery_after_recharge, 
                                       current_load, time_after_recharge):
                 return True
                 
         return False
     
     def _find_best_recharge_station_to_depot(self, from_id: int, current_battery: float, 
-                                           current_load: float, current_time: float) -> Optional[Tuple[Station, Technology, float]]:
+                                           current_load: float, current_time: float, target_depot_id: int) -> Optional[Tuple[Station, Technology, float]]:
         """Find the best recharge station to reach depot from current position"""
         recharge_locations = list(self.stations.values())
-        if self.depot and self.depot.technologies:
-            recharge_locations.append(self.depot)
+        # Depots with technologies are also valid recharge locations
+        for depot in self.depots.values():
+            if depot.technologies:
+                recharge_locations.append(depot)
             
         # Sort by distance from current position (closest first)
         recharge_distances = []
@@ -144,7 +146,7 @@ class ConstructiveHeuristic:
         recharge_distances.sort(key=lambda x: x[0])
         
         for _, station in recharge_distances:
-            if not self._can_reach_depot_via_station(from_id, station.id, current_battery, current_load, current_time):
+            if not self._can_reach_depot_via_station(from_id, station.id, current_battery, current_load, current_time, target_depot_id):
                 continue
                 
             # Calculate optimal recharge at this station
@@ -156,8 +158,8 @@ class ConstructiveHeuristic:
             time_at_station = current_time + time_to_station
             
             # Get available technologies
-            if station.id == self.depot.id:
-                available_techs = self.depot.technologies
+            if station.id in self.depots:
+                available_techs = self.depots[station.id].technologies
             else:
                 available_techs = self.stations[station.id].technologies
             
@@ -175,7 +177,7 @@ class ConstructiveHeuristic:
                 max_energy_by_capacity = self.instance.vehicle.battery_capacity - battery_at_station
                 
                 # Find minimum energy needed to reach depot
-                energy_to_depot = self.instance.distance_matrix[station.id][self.depot.id] * self.instance.vehicle.consumption_rate
+                energy_to_depot = self.instance.distance_matrix[station.id][target_depot_id] * self.instance.vehicle.consumption_rate
                 min_energy_needed = max(0, energy_to_depot - battery_at_station)
                 
                 # Recharge amount should be at least minimum needed, but not exceed limits
@@ -190,7 +192,7 @@ class ConstructiveHeuristic:
                 battery_after_recharge = battery_at_station + energy_to_recharge
                 
                 # Verify we can reach depot
-                if self._can_reach_directly(station.id, self.depot.id, battery_after_recharge, 
+                if self._can_reach_directly(station.id, target_depot_id, battery_after_recharge, 
                                           current_load, time_after_recharge):
                     cost = energy_to_recharge * tech.cost_per_kwh
                     if cost < min_cost:
@@ -201,6 +203,33 @@ class ConstructiveHeuristic:
                 return best_option
                 
         return None
+
+    def _can_reach_any_depot_directly(self, from_id: int, current_battery: float, 
+                                      current_load: float, current_time: float) -> Optional[int]:
+        best_depot_id = None
+        best_dist = float('inf')
+        for depot in self.depots.values():
+            if self._can_reach_directly(from_id, depot.id, current_battery, current_load, current_time):
+                dist = self.instance.distance_matrix[from_id][depot.id]
+                if dist < best_dist:
+                    best_dist = dist
+                    best_depot_id = depot.id
+        return best_depot_id
+
+    def _find_best_recharge_station_to_any_depot(self, from_id: int, current_battery: float, 
+                                                 current_load: float, current_time: float) -> Optional[Tuple[Station, Technology, float, int]]:
+        best_option = None
+        min_cost = float('inf')
+        for depot in self.depots.values():
+            option = self._find_best_recharge_station_to_depot(from_id, current_battery, current_load, current_time, depot.id)
+            if option is None:
+                continue
+            station, tech, energy = option
+            cost = energy * tech.cost_per_kwh
+            if cost < min_cost:
+                min_cost = cost
+                best_option = (station, tech, energy, depot.id)
+        return best_option
     
     def _get_k_closest_feasible_customers(self, current_pos: int, visited: set, route: Route) -> List[Customer]:
         """Get up to k closest unvisited customers that are reachable according to capacity, autonomy and time"""
@@ -227,11 +256,21 @@ class ConstructiveHeuristic:
             load_after_customer = route.current_load + customer.demand
             time_after_customer = route.current_time + travel_time + customer.service_time
             
-            # Check if we can reach depot directly or via station after visiting customer
-            can_reach_depot = (self._can_reach_directly(customer.id, self.depot.id, 
-                                                      battery_after_customer, load_after_customer, time_after_customer) or
-                             self._find_best_recharge_station_to_depot(customer.id, battery_after_customer, 
-                                                                      load_after_customer, time_after_customer) is not None)
+            # Check if we can reach any depot directly or via station after visiting customer
+            can_reach_depot = (
+                self._can_reach_any_depot_directly(
+                    customer.id,
+                    battery_after_customer,
+                    load_after_customer,
+                    time_after_customer,
+                ) is not None
+                or self._find_best_recharge_station_to_any_depot(
+                    customer.id,
+                    battery_after_customer,
+                    load_after_customer,
+                    time_after_customer,
+                ) is not None
+            )
             
             if can_reach_depot:
                 feasible_customers.append(customer)
@@ -254,13 +293,29 @@ class ConstructiveHeuristic:
         while len(visited_customers) < len(self.customers):
             # Initialize new route h
             route = Route()
-            route.nodes = [self.depot]
+            # Choose a home depot for this route: nearest depot to the closest unvisited customer
+            if len(visited_customers) < len(self.customers):
+                remaining_customers = [c for c in self.customers.values() if c not in visited_customers]
+                # pick the globally closest customer to any depot
+                best_pair = None
+                best_dist = float('inf')
+                for depot in self.depots.values():
+                    for cust in remaining_customers:
+                        d = self.instance.distance_matrix[depot.id][cust.id]
+                        if d < best_dist:
+                            best_dist = d
+                            best_pair = (depot, cust)
+                home_depot = best_pair[0] if best_pair else next(iter(self.depots.values()))
+            else:
+                home_depot = next(iter(self.depots.values()))
+
+            route.nodes = [home_depot]
             route.current_battery = self.instance.vehicle.battery_capacity
             route.current_load = 0.0
             route.current_time = 0.0
-            i = self.depot.id  # start from depot
+            i = home_depot.id  # start from selected depot
 
-            route.charging_decisions[self.depot.id] = (self.instance.technologies[0], route.current_battery)
+            route.charging_decisions[home_depot.id] = (self.instance.technologies[0], route.current_battery)
             
             # Step 2: repeat
             while True:
@@ -284,17 +339,17 @@ class ConstructiveHeuristic:
                 visited_customers.add(j)
                 i = j.id  # set current position to j
                 
-                # Step 4: if (it is possible to reach the depot directly from j) then
-                if self._can_reach_directly(i, self.depot.id, route.current_battery, 
-                                          route.current_load, route.current_time):
+                # Step 4: if (it is possible to reach any depot directly from j) then
+                if self._can_reach_any_depot_directly(i, route.current_battery, 
+                                          route.current_load, route.current_time) is not None:
                     # Continue to next iteration to potentially add more customers
                     continue
                 else:
-                    # Step 7: if (it is possible to reach the depot from j by visiting a recharge node r in between) then
-                    recharge_option = self._find_best_recharge_station_to_depot(i, route.current_battery, 
+                    # Step 7: if (it is possible to reach any depot from j by visiting a recharge node r in between) then
+                    recharge_option = self._find_best_recharge_station_to_any_depot(i, route.current_battery, 
                                                                                route.current_load, route.current_time)
                     if recharge_option is not None:
-                        station, tech, energy_to_recharge = recharge_option
+                        station, tech, energy_to_recharge, target_depot_id = recharge_option
                         
                         # Add station to route
                         route.nodes.append(station)
@@ -318,13 +373,19 @@ class ConstructiveHeuristic:
                     else:
                         break
             
-            route.nodes.append(self.depot)
+            # Close route at nearest reachable depot (directly or after recharge already handled in loop)
+            best_depot_id = self._can_reach_any_depot_directly(i, route.current_battery, route.current_load, route.current_time)
+            if best_depot_id is None:
+                # As a fallback, choose the closest depot ignoring constraints and let evaluation mark infeasible
+                best_depot_id = min(self.depots.keys(), key=lambda d: self.instance.distance_matrix[i][d])
+            end_depot = self.depots[best_depot_id]
+            route.nodes.append(end_depot)
             
             # Update final time and battery to depot
-            if i != self.depot.id:  # if not already at depot
-                final_distance = self.instance.distance_matrix[i][self.depot.id]
+            if i != end_depot.id:  # if not already at depot
+                final_distance = self.instance.distance_matrix[i][end_depot.id]
                 final_energy = final_distance * self.instance.vehicle.consumption_rate
-                final_time = self.instance.time_matrix[i][self.depot.id]
+                final_time = self.instance.time_matrix[i][end_depot.id]
                 
                 route.current_battery -= final_energy
                 route.current_time += final_time

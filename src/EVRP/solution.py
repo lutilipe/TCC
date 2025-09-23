@@ -27,6 +27,9 @@ class Solution:
         for _, route in enumerate(self.routes):
             route.evaluate(self.instance)
             self.total_distance += route.total_distance
+            print(route.total_cost)
+            print(route.charging_decisions)
+
             self.total_cost += route.total_cost
             if not route.is_feasible:
                 self.is_feasible = False
