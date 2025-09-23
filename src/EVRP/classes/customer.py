@@ -6,8 +6,12 @@ class Customer(Node):
             x: float,
             y: float,
             demand: float = 0,
-            service_time: float = 0
+            service_time: float = 0,
+            ready_time: float = 0,
+            due_date: float = 0
         ):
         super().__init__(id=id, x=x, y=y, node_type = NodeType.CUSTOMER)
         self.demand = demand
         self.service_time = service_time
+        self.ready_time = ready_time
+        self.due_date = due_date
