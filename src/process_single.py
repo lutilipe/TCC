@@ -63,7 +63,7 @@ def process_single_instance(instance_file):
             
     
     final_solutions = gvns.run(initial_solutions)
-    
+
     # Mostra resultados finais
     print("\n" + "="*70)
     print("RESULTADOS FINAIS")
@@ -74,6 +74,12 @@ def process_single_instance(instance_file):
         
         # Ordena soluções por qualidade
         final_solutions.sort(key=lambda x: (x.total_cost, x.total_distance))
+
+        for idx, solution in enumerate(final_solutions):
+            print(f"SOL: {idx+1}")
+            for route in solution.routes:
+                for id in route.charging_decisions:
+                    print(route.charging_decisions[id][0].id)
         
         print("\nTop melhores soluções:")
         print("Rank | Distância | Veículos | Custo   | Factível")

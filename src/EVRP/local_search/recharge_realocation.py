@@ -54,26 +54,34 @@ class RechargeRealocation:
         if len(customer_sequence) < 3:  # Need at least depot, customer, depot
             return False
         
-        # Calculate total distance between consecutive customers
         total_distance = self._calculate_total_distance(customer_sequence)
         
-        # AT is the maximum range (battery capacity / consumption rate)
         AT = self.instance.vehicle.max_range
 
         if total_distance <= AT:
+            stations_to_remove = []
             for idx, node in enumerate(route.nodes):
                 if node.type == NodeType.STATION:
-                    route.nodes.remove(node)
-                    if node.id in route.charging_decisions:
-                        route.charging_decisions.pop(node.id)
-                    route.evaluate(self.instance)
-                    if not route.is_feasible:
-                        route.nodes.insert(idx, node)
-                        route.charging_decisions[node.id] = (node.technologies[0], node.technologies[0].power)
-                        route.evaluate(self.instance)
-                        return False
-                    return True
-            return False 
+                    stations_to_remove.append((idx, node))
+            
+            if not stations_to_remove:
+                return False
+            
+            for original_idx, station_node in stations_to_remove:
+                route.nodes.remove(station_node)
+                if station_node.id in route.charging_decisions:
+                    route.charging_decisions.pop(station_node.id)
+            
+            route.evaluate(self.instance)
+            
+            if not route.is_feasible:
+                for original_idx, station_node in reversed(stations_to_remove):
+                    route.nodes.insert(original_idx, station_node)
+                    route.charging_decisions[station_node.id] = (station_node.technologies[0], station_node.technologies[0].power)
+                route.evaluate(self.instance)
+                return False
+            else:
+                return True 
         
         a, b = self._find_recharge_interval(customer_sequence, AT)
         if a > b:
