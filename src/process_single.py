@@ -3,15 +3,9 @@ from EVRP import GVNS
 from EVRP.constructive_heuristic import ConstructiveHeuristic
 from EVRP.create_instance import create_evrp_instance
 from EVRP.local_search.recharge_realocation import RechargeRealocation
+from EVRP.local_search.relocate import Relocate
 from EVRP.local_search.two_opt import TwoOpt
 from EVRP.local_search.two_opt_star import TwoOptStar
-from EVRP.local_search.reinsertion import Reinsertion
-from EVRP.local_search.recharge_realocation import RechargeRealocation
-from EVRP.local_search.relocate import Relocate
-from EVRP.local_search.exchange import Exchange
-from EVRP.local_search.or_opt import OrOpt
-from EVRP.local_search.three_opt import ThreeOpt
-from EVRP.local_search.shift import Shift
 from EVRP.local_search.depot_reassignment import DepotReassignment
 from utils import plot_solution, print_instance_summary
 
@@ -34,8 +28,6 @@ def process_single_instance(instance_file):
         solution = constructiveHeuristic.build_initial_solution()
         while not solution.is_feasible:
             solution = constructiveHeuristic.build_initial_solution()
-        """ improved = twoOpt.run(solution)
-        solution.evaluate() """
         initial_solutions.append(solution)
 
         if len(initial_solutions) % 10 == 0:
@@ -49,17 +41,15 @@ def process_single_instance(instance_file):
         instance=instance,
         ns=5,           # Número de soluções por busca local
         na=50,          # Tamanho máximo do arquivo A
-        ls_max_iter=10, # Máximo de tentativas de busca local
+        ls_max_iter=5, # Máximo de tentativas de busca local
         max_evaluations=1000,  # Máximo de avaliações,
         local_search=[
-            TwoOptStar(instance, max_iter=5),
-            TwoOpt(instance, max_iter=3),
-            RechargeRealocation(instance)
+            Relocate(instance, use_incremental_eval=True, early_termination=True),
+            ## TODO
+            ## reinsertion
         ],
         perturbation=[
-            DepotReassignment(instance, k=2),  # Depot reassignment shake operator
-            TwoOptStar(instance, max_iter=10),
-            TwoOpt(instance, max_iter=10)
+            Relocate(instance, use_incremental_eval=False, max_iter=10),
         ]
     )
             

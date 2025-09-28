@@ -128,34 +128,35 @@ class GVNS:
 
         return non_dominated, changed
     
-    def _improve_solution(self, solution: Solution) -> Solution:
+    def _improve_solution(self, solution: Solution, iterate = False) -> Solution:
         candidate = copy.deepcopy(solution)
-        for method in self.local_search_algorithms:
+        method_idx = 0
+        maxTries = 0
+        while method_idx < len(self.local_search_algorithms) and maxTries < 10:
+            method = self.local_search_algorithms[method_idx]
             improved = method.local_search(candidate)
             self.evaluation_count += 1
-            if improved:
-                candidate.evaluate()
-                if candidate.is_feasible:
-                    break
+            if improved and iterate:
+                method_idx = 0
+            else:
+                method_idx = method_idx + 1
+                maxTries = maxTries + 1
+            
         return candidate
 
-    def local_search(self, solution: Solution) -> List[Solution]:
+    def local_search(self, solution: Solution, iterate = False) -> List[Solution]:
         solutions = []
         candidate = copy.deepcopy(solution)
         for _ in range(self.ns):
             if self.evaluation_count >= self.max_evaluations:
                 break
-
-            candidate = self._improve_solution(candidate)
+            print("here")
+            candidate = self._improve_solution(candidate, iterate)
             candidate.evaluate()
             if candidate.is_feasible:
                 solutions.append(candidate)
 
-        if candidate.is_feasible:
-            solutions.append(candidate)
-
         return solutions
-
     
     def perturbation(self, solution: Solution) -> Solution:
         perturbed_sol = copy.deepcopy(solution)
@@ -196,7 +197,7 @@ class GVNS:
                 continue
             
             # Passo 9: Aplica busca local NS vezes
-            local_solutions = self.local_search(solution)
+            local_solutions = self.local_search(solution, False)
             
             # Passo 10: Atualiza arquivo A
             archive, _ = self.update_archive(archive, local_solutions)
@@ -250,7 +251,7 @@ class GVNS:
                 x_prime = self.perturbation(x)
                 
                 # Passo 16: Aplica busca local NS vezes
-                local_solutions = self.local_search(x_prime)
+                local_solutions = self.local_search(x_prime, False)
                 
                 # Passo 17: Atualiza arquivo A
                 old_size = len(archive)

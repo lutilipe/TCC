@@ -1,6 +1,6 @@
 import copy
 import random
-from typing import List, Tuple, TYPE_CHECKING
+from typing import List, Tuple, TYPE_CHECKING, Optional
 from EVRP.classes.instance import Instance
 from EVRP.classes.node import Node, NodeType
 from EVRP.classes.route import Route
@@ -9,237 +9,367 @@ if TYPE_CHECKING:
     from EVRP.solution import Solution
 
 class Relocate:
-    """
-    Relocate local search operator that moves a single customer from one route to another.
-    This is one of the most fundamental local search operators in vehicle routing problems.
-    """
-    
-    def __init__(self, instance: Instance, max_iter: int = 10):
+    def __init__(self, instance: Instance, max_iter: int = 1, 
+                 use_incremental_eval: bool = True, 
+                 early_termination: bool = True,
+                 max_neighbors: int = 3):
+        """
+        Initialize the Relocate operator for EVRP with performance optimizations.
+        
+        Args:
+            instance: EVRP instance containing problem data
+            max_iter: Maximum number of iterations for local search
+            use_incremental_eval: Use incremental evaluation instead of full route recalculation
+            early_termination: Stop search early when no improvement is found
+            max_neighbors: Maximum number of neighbors to consider for each node
+        """
         self.instance = instance
         self.max_iter = max_iter
-
-    def local_search(self, solution: 'Solution') -> bool:
-        """
-        Apply relocate local search to improve the solution.
-        Moves customers between routes to reduce total cost.
+        self.use_incremental_eval = use_incremental_eval
+        self.early_termination = early_termination
+        self.max_neighbors = max_neighbors
         
-        Args:
-            solution: The solution to improve
+        # Precompute distance-based node ordering for faster neighbor selection
+        self._precompute_neighbors()
+
+    def _precompute_neighbors(self):
+        """Precompute closest neighbors for each node to speed up node selection."""
+        self.node_neighbors = {}
+        all_nodes = self.instance.nodes
+        
+        for node in all_nodes:
+            distances = []
+            for other_node in all_nodes:
+                if node.id != other_node.id:
+                    dist = self.instance.distance_matrix[node.id][other_node.id]
+                    distances.append((other_node, dist))
             
-        Returns:
-            bool: True if any improvement was made, False otherwise
+            # Sort by distance and keep only top neighbors
+            distances.sort(key=lambda x: x[1])
+            self.node_neighbors[node.id] = [node for node, _ in distances[:self.max_neighbors]]
+
+    def run(self, solution: 'Solution') -> bool:
         """
-        if len(solution.routes) < 2:
+        Apply relocate operator to a random route in the solution.
+        Returns True if any improvement was made, False otherwise.
+        """
+        if not solution.routes:
             return False
             
-        improved = False
-        iteration = 0
+        # Choose a random route to apply relocate
+        route_idx = random.randint(0, len(solution.routes) - 1)
+        route = solution.routes[route_idx]
         
-        while iteration < self.max_iter:
-            if self._relocate_customers(solution):
-                improved = True
-                solution.evaluate()
-            else:
-                break
-            iteration += 1
+        # Try intra-route relocate first
+        if self._intra_route_relocate(route):
+            return True
             
+        # Try inter-route relocate if intra-route didn't improve
+        if len(solution.routes) > 1:
+            return self._inter_route_relocate(solution, route_idx)
+            
+        return False
+    
+    def local_search(self, solution: 'Solution') -> bool:
+        """
+        Apply relocate local search to the solution.
+        Returns True if any improvement was made, False otherwise.
+        """
+        improved = False
+        for _ in range(self.max_iter):
+            if self.run(solution):
+                improved = True
+                if self.early_termination:
+                    # Continue searching for more improvements
+                    continue
+        
         return improved
-
+    
     def perturbation(self, solution: 'Solution') -> 'Solution':
         """
-        Apply relocate perturbation to diversify the solution.
-        
-        Args:
-            solution: The solution to perturb
-            
-        Returns:
-            Solution: The perturbed solution
+        Apply relocate perturbation to the solution.
+        Returns the perturbed solution.
         """
         for _ in range(self.max_iter):
-            self._relocate_customers(solution, force_move=True)
+            self.run(solution)
         
-        solution.evaluate()
         return solution
-
-    def _relocate_customers(self, solution: 'Solution', force_move: bool = False) -> bool:
+    
+    def _intra_route_relocate(self, route: Route) -> bool:
         """
-        Try to relocate customers between routes to improve the solution.
+        Apply intra-route relocate operator with optimizations.
+        Moves a node to a different position within the same route.
         
         Args:
-            solution: The solution to improve
-            force_move: If True, perform a random move even if not improving
+            route: Route to apply relocate to
             
         Returns:
-            bool: True if a move was made, False otherwise
+            True if improvement was found, False otherwise
         """
-        best_move = None
+        if len(route.nodes) <= 3:  # Need at least depot + customer + depot
+            return False
+            
+        original_distance = route.total_distance
         best_improvement = 0
+        best_move = None
         
-        # Try all possible customer relocations
-        for source_route_idx, source_route in enumerate(solution.routes):
-            for customer_idx, customer_node in enumerate(source_route.nodes):
-                if customer_node.type != NodeType.CUSTOMER:
+        # Try relocating each non-depot node to different positions
+        for i in range(1, len(route.nodes) - 1):  # Skip first and last (depots)
+            node_to_move = route.nodes[i]
+            
+            # Skip if this node doesn't have promising neighbors (optimization)
+            if not self._has_promising_neighbors(node_to_move, route.nodes, i):
+                continue
+            
+            # Try inserting at different positions
+            for j in range(1, len(route.nodes)):  # Skip first depot
+                if i == j or i == j - 1:  # Skip same position and adjacent positions
                     continue
                 
-                # Try inserting this customer into other routes
-                for target_route_idx, target_route in enumerate(solution.routes):
-                    if target_route_idx == source_route_idx:
-                        continue
+                if self.use_incremental_eval:
+                    # Use incremental evaluation for speed
+                    improvement = self._evaluate_move_incremental(route, i, j)
+                else:
+                    # Use full evaluation for accuracy
+                    improvement = self._evaluate_move_full(route, i, j)
+                
+                if improvement > best_improvement:
+                    best_improvement = improvement
+                    best_move = (i, j)
                     
-                    # Try different insertion positions in target route
-                    for insert_pos in range(1, len(target_route.nodes)):  # Skip depot at position 0
-                        move = self._evaluate_relocate_move(
-                            solution, source_route_idx, customer_idx, target_route_idx, insert_pos
-                        )
-                        
-                        if move and move['improvement'] > best_improvement:
-                            best_move = move
-                            best_improvement = move['improvement']
-        
-        # If no improving move found but force_move is True, select a random move
-        if not best_move and force_move:
-            best_move = self._select_random_move(solution)
+                    # Early termination if improvement is significant
+                    if self.early_termination and improvement > original_distance * 0.01:
+                        break
+            
+            if self.early_termination and best_improvement > 0:
+                break
         
         # Apply the best move if found
-        if best_move:
-            self._apply_relocate_move(solution, best_move)
+        if best_move and best_improvement > 0:
+            i, j = best_move
+            self._apply_move_in_place(route, i, j)
+            route.evaluate(self.instance)  # Final evaluation
             return True
             
         return False
-
-    def _evaluate_relocate_move(self, solution: 'Solution', source_route_idx: int, 
-                               customer_idx: int, target_route_idx: int, 
-                               insert_pos: int) -> dict:
+    
+    def _inter_route_relocate(self, solution: 'Solution', source_route_idx: int) -> bool:
         """
-        Evaluate a specific relocate move.
+        Apply inter-route relocate operator.
+        Moves a node from one route to another route.
         
         Args:
-            solution: The current solution
+            solution: Complete solution
             source_route_idx: Index of the source route
-            customer_idx: Index of the customer in the source route
-            target_route_idx: Index of the target route
-            insert_pos: Position to insert the customer in the target route
             
         Returns:
-            dict: Move information with improvement value, or None if infeasible
+            True if improvement was found, False otherwise
         """
         source_route = solution.routes[source_route_idx]
-        target_route = solution.routes[target_route_idx]
-        customer_node = source_route.nodes[customer_idx]
-        
-        # Create temporary copies to test the move
-        temp_solution = self._copy_solution(solution)
-        temp_source = temp_solution.routes[source_route_idx]
-        temp_target = temp_solution.routes[target_route_idx]
-        
-        # Remove customer from source route
-        temp_source.nodes.pop(customer_idx)
-        
-        # Insert customer into target route
-        temp_target.nodes.insert(insert_pos, customer_node)
-        
-        # Evaluate both routes
-        temp_source.evaluate(self.instance)
-        temp_target.evaluate(self.instance)
-        
-        # Check if both routes are feasible
-        if not temp_source.is_feasible or not temp_target.is_feasible:
-            return None
-        
-        # Calculate improvement
-        original_cost = source_route.total_cost + target_route.total_cost
-        new_cost = temp_source.total_cost + temp_target.total_cost
-        improvement = original_cost - new_cost
-        
-        return {
-            'source_route_idx': source_route_idx,
-            'customer_idx': customer_idx,
-            'target_route_idx': target_route_idx,
-            'insert_pos': insert_pos,
-            'customer_node': customer_node,
-            'improvement': improvement
-        }
-
-    def _select_random_move(self, solution: 'Solution') -> dict:
-        """
-        Select a random relocate move for perturbation.
-        
-        Args:
-            solution: The current solution
+        if len(source_route.nodes) <= 2:  # Need at least depot + customer + depot
+            return False
             
-        Returns:
-            dict: Random move information, or None if no valid moves
-        """
-        valid_moves = []
+        best_improvement = False
         
-        # Collect all valid moves
-        for source_route_idx, source_route in enumerate(solution.routes):
-            for customer_idx, customer_node in enumerate(source_route.nodes):
-                if customer_node.type != NodeType.CUSTOMER:
+        # Try moving each non-depot node from source route
+        for i in range(1, len(source_route.nodes) - 1):  # Skip first and last (depots)
+            node_to_move = source_route.nodes[i]
+            
+            # Try inserting into all other routes
+            for target_route_idx, target_route in enumerate(solution.routes):
+                if target_route_idx == source_route_idx:
                     continue
-                
-                for target_route_idx, target_route in enumerate(solution.routes):
-                    if target_route_idx == source_route_idx:
-                        continue
                     
-                    for insert_pos in range(1, len(target_route.nodes)):
-                        move = self._evaluate_relocate_move(
-                            solution, source_route_idx, customer_idx, target_route_idx, insert_pos
-                        )
+                # Try inserting at different positions in target route
+                for j in range(1, len(target_route.nodes)):  # Skip first depot
+                    new_solution = self._move_node_between_routes(
+                        solution, source_route_idx, i, target_route_idx, j
+                    )
+                    
+                    if new_solution:
+                        new_solution.evaluate()
                         
-                        if move:  # Only consider feasible moves
-                            valid_moves.append(move)
+                        if new_solution.is_feasible and self._is_better_solution(new_solution, solution):
+                            # Apply the improvement
+                            solution.routes = new_solution.routes
+                            solution.evaluate()
+                            best_improvement = True
+                            return True
         
-        # Return a random move if any exist
-        return random.choice(valid_moves) if valid_moves else None
-
-    def _apply_relocate_move(self, solution: 'Solution', move: dict) -> None:
+        return best_improvement
+    
+    def _move_node_within_route(self, route: Route, from_pos: int, to_pos: int) -> Route:
         """
-        Apply a relocate move to the solution.
+        Move a node within the same route from one position to another.
         
         Args:
-            solution: The solution to modify
-            move: The move to apply
-        """
-        source_route_idx = move['source_route_idx']
-        customer_idx = move['customer_idx']
-        target_route_idx = move['target_route_idx']
-        insert_pos = move['insert_pos']
-        customer_node = move['customer_node']
-        
-        # Get the actual route objects
-        source_route = solution.routes[source_route_idx]
-        target_route = solution.routes[target_route_idx]
-        
-        # Remove customer from source route
-        source_route.nodes.pop(customer_idx)
-        
-        # Insert customer into target route
-        target_route.nodes.insert(insert_pos, customer_node)
-        
-        # Remove empty routes (if source route only has depot)
-        if len(source_route.nodes) <= 2:  # Only depot nodes
-            solution.routes.pop(source_route_idx)
-
-    def _copy_solution(self, solution: 'Solution') -> 'Solution':
-        """
-        Create a deep copy of the solution for testing moves.
-        
-        Args:
-            solution: The solution to copy
+            route: Original route
+            from_pos: Position to move from (0-based)
+            to_pos: Position to move to (0-based)
             
         Returns:
-            Solution: A deep copy of the solution
+            New route with node moved, or None if invalid
         """
-        from EVRP.solution import Solution
+        if (from_pos < 1 or from_pos >= len(route.nodes) - 1 or  # Can't move depots
+            to_pos < 1 or to_pos > len(route.nodes) or  # Can't insert at depot position
+            from_pos == to_pos or from_pos == to_pos - 1):  # Skip same/adjacent positions
+            return None
+            
+        new_route = copy.deepcopy(route)
+        node_to_move = new_route.nodes.pop(from_pos)
+        new_route.nodes.insert(to_pos, node_to_move)
         
-        new_solution = Solution(solution.instance)
-        new_solution.routes = []
+        return new_route
+    
+    def _move_node_between_routes(self, solution: 'Solution', 
+                                 source_route_idx: int, from_pos: int,
+                                 target_route_idx: int, to_pos: int) -> 'Solution':
+        """
+        Move a node from one route to another route.
         
-        for route in solution.routes:
-            new_route = Route()
-            new_route.nodes = route.nodes.copy()
-            new_route.charging_decisions = route.charging_decisions.copy()
-            new_solution.routes.append(new_route)
+        Args:
+            solution: Original solution
+            source_route_idx: Index of source route
+            from_pos: Position in source route to move from
+            target_route_idx: Index of target route
+            to_pos: Position in target route to move to
+            
+        Returns:
+            New solution with node moved, or None if invalid
+        """
+        if (source_route_idx == target_route_idx or
+            from_pos < 1 or from_pos >= len(solution.routes[source_route_idx].nodes) - 1 or
+            to_pos < 1 or to_pos > len(solution.routes[target_route_idx].nodes)):
+            return None
+            
+        new_solution = copy.deepcopy(solution)
+        source_route = new_solution.routes[source_route_idx]
+        target_route = new_solution.routes[target_route_idx]
+        
+        # Remove node from source route
+        node_to_move = source_route.nodes.pop(from_pos)
+        
+        # Insert node into target route
+        target_route.nodes.insert(to_pos, node_to_move)
         
         return new_solution
+    
+    def _is_better_route(self, route1: Route, route2: Route) -> bool:
+        """
+        Check if route1 is better than route2.
+        A route is better if it's feasible and dominates the other route.
+        
+        Args:
+            route1: First route to compare
+            route2: Second route to compare
+            
+        Returns:
+            True if route1 is better than route2
+        """
+        if not route1.is_feasible:
+            return False
+        
+        if not route2.is_feasible:
+            return True
+        
+        return route1.dominates(route2)
+    
+    def _is_better_solution(self, solution1: 'Solution', solution2: 'Solution') -> bool:
+        """
+        Check if solution1 is better than solution2.
+        A solution is better if it's feasible and dominates the other solution.
+        
+        Args:
+            solution1: First solution to compare
+            solution2: Second solution to compare
+            
+        Returns:
+            True if solution1 is better than solution2
+        """
+        if not solution1.is_feasible:
+            return False
+        
+        if not solution2.is_feasible:
+            return True
+        
+        return solution1.dominates(solution2)
+    
+    def _has_promising_neighbors(self, node: Node, route_nodes: List[Node], current_pos: int) -> bool:
+        """
+        Check if a node has promising neighbors in the route for potential improvements.
+        """
+        if node.id not in self.node_neighbors:
+            return True  # Default to True if no precomputed neighbors
+        
+        # Check if any neighbors are close to current position
+        neighbors = self.node_neighbors[node.id]
+        for neighbor in neighbors[:5]:  # Check only closest 5 neighbors
+            if any(n.id == neighbor.id for n in route_nodes):
+                return True
+        
+        return False
+    
+    def _evaluate_move_incremental(self, route: Route, from_pos: int, to_pos: int) -> float:
+        """
+        Evaluate a move using incremental calculation instead of full route evaluation.
+        """
+        if from_pos == to_pos or from_pos == to_pos - 1:
+            return 0
+        
+        # Calculate the change in distance for this specific move
+        nodes = route.nodes
+        
+        # Distance before move
+        old_dist = 0
+        if from_pos > 0:
+            old_dist += self.instance.distance_matrix[nodes[from_pos-1].id][nodes[from_pos].id]
+        if from_pos < len(nodes) - 1:
+            old_dist += self.instance.distance_matrix[nodes[from_pos].id][nodes[from_pos+1].id]
+        
+        # Distance after move
+        new_dist = 0
+        if from_pos > 0 and from_pos < len(nodes) - 1:
+            new_dist += self.instance.distance_matrix[nodes[from_pos-1].id][nodes[from_pos+1].id]
+        
+        # Add distance from new position
+        if to_pos > 0:
+            new_dist += self.instance.distance_matrix[nodes[to_pos-1].id][nodes[from_pos].id]
+        if to_pos < len(nodes):
+            new_dist += self.instance.distance_matrix[nodes[from_pos].id][nodes[to_pos].id]
+        
+        # Remove distance that was at the old position
+        if to_pos > 0 and to_pos < len(nodes):
+            new_dist -= self.instance.distance_matrix[nodes[to_pos-1].id][nodes[to_pos].id]
+        
+        return old_dist - new_dist  # Positive means improvement
+    
+    def _evaluate_move_full(self, route: Route, from_pos: int, to_pos: int) -> float:
+        """
+        Evaluate a move using full route evaluation.
+        """
+        if from_pos == to_pos or from_pos == to_pos - 1:
+            return 0
+        
+        # Create temporary route
+        temp_route = copy.deepcopy(route)
+        node_to_move = temp_route.nodes.pop(from_pos)
+        temp_route.nodes.insert(to_pos, node_to_move)
+        
+        # Evaluate the temporary route
+        temp_route.evaluate(self.instance)
+        
+        if not temp_route.is_feasible:
+            return 0
+        
+        # Calculate improvement
+        original_distance = route.total_distance
+        new_distance = temp_route.total_distance
+        
+        return original_distance - new_distance  # Positive means improvement
+    
+    def _apply_move_in_place(self, route: Route, from_pos: int, to_pos: int):
+        """
+        Apply a move in-place without creating new objects.
+        """
+        node_to_move = route.nodes.pop(from_pos)
+        route.nodes.insert(to_pos, node_to_move)

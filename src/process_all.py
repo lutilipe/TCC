@@ -3,7 +3,6 @@ import glob
 from EVRP.constructive_heuristic import ConstructiveHeuristic
 from EVRP.create_instance import create_evrp_instance
 from EVRP.local_search.recharge_realocation import RechargeRealocation
-from EVRP.local_search.reinsertion import Reinsertion
 from EVRP.local_search.two_opt import TwoOpt
 from EVRP.local_search.two_opt_star import TwoOptStar
 from EVRP.local_search.depot_reassignment import DepotReassignment
@@ -48,7 +47,6 @@ def process_all_instances():
             twoOpt = TwoOpt(instance, max_pert=5)
             twoOptStar = TwoOptStar(instance)
             rechargeRealocation = RechargeRealocation(instance)
-            reinsertion = Reinsertion(instance)
             
             # Cria população inicial de soluções
             print("Criando população inicial...")
