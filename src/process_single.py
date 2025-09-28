@@ -1,4 +1,6 @@
 import os
+import json
+import matplotlib.pyplot as plt
 from EVRP import GVNS
 from EVRP.constructive_heuristic import ConstructiveHeuristic
 from EVRP.create_instance import create_evrp_instance
@@ -7,6 +9,7 @@ from EVRP.local_search.relocate import Relocate
 from EVRP.local_search.two_opt import TwoOpt
 from EVRP.local_search.two_opt_star import TwoOptStar
 from EVRP.local_search.depot_reassignment import DepotReassignment
+from EVRP.metrics import EVRPMetrics
 from utils import plot_solution, print_instance_summary
 
 def process_single_instance(instance_file):
@@ -35,7 +38,7 @@ def process_single_instance(instance_file):
     
     print(f"População inicial criada com {len(initial_solutions)} soluções")
     
-    # Executa o algoritmo GVNS
+    # Executa o algoritmo GVNS com métricas
     print("\n" + "="*70)
     gvns = GVNS(
         instance=instance,
@@ -44,17 +47,89 @@ def process_single_instance(instance_file):
         ls_max_iter=5, # Máximo de tentativas de busca local
         max_evaluations=1000,  # Máximo de avaliações,
         local_search=[
-            Relocate(instance, use_incremental_eval=True, early_termination=True),
+            #Relocate(instance, use_incremental_eval=True, early_termination=True),
+            TwoOpt(instance, max_iter=5),
+            TwoOptStar(instance, max_iter=3),
+            RechargeRealocation(instance)
             ## TODO
             ## reinsertion
         ],
         perturbation=[
             Relocate(instance, use_incremental_eval=False, max_iter=10),
-        ]
+            TwoOpt(instance, max_iter=20),
+            TwoOptStar(instance, max_iter=20),
+        ],
+        track_metrics=True  # Habilita rastreamento de métricas
     )
             
     
     final_solutions = gvns.run(initial_solutions)
+
+    # Análise de métricas Pareto
+    print("\n" + "="*70)
+    print("ANÁLISE DE MÉTRICAS PARETO")
+    print("="*70)
+    
+    metrics = EVRPMetrics()
+    
+    # Analisa soluções finais
+    if final_solutions:
+        final_metrics = metrics.evaluate_solution_set(final_solutions)
+        
+        print(f"📊 Métricas de Qualidade Pareto:")
+        print(f"  Spread Measure (Δ): {final_metrics['spread_measure']:.4f}")
+        print(f"  Hypervolume (HV): {final_metrics['hypervolume']:.4f}")
+        print(f"  Soluções factíveis: {final_metrics['num_feasible']}/{final_metrics['num_solutions']}")
+        print(f"  Ponto Utopiano: {final_metrics['utopian_point']}")
+        print(f"  Ponto Nadir: {final_metrics['nadir_point']}")
+        
+        # Plota fronteira Pareto
+        print(f"\nGerando visualização da fronteira Pareto...")
+        try:
+            instance_name = os.path.basename(instance_file).replace('.txt', '')
+            output_dir = f"output/{instance_name}"
+            os.makedirs(output_dir, exist_ok=True)
+            
+            pareto_fig = metrics.plot_evrp_pareto_front(final_solutions, 
+                                                       f"EVRP Pareto Front - {instance_name}")
+            pareto_file = f"{output_dir}/pareto_front.png"
+            pareto_fig.savefig(pareto_file, dpi=300, bbox_inches='tight')
+            print(f"  Fronteira Pareto salva em: {pareto_file}")
+            plt.close(pareto_fig)
+            
+        except Exception as e:
+            print(f"  Erro ao gerar fronteira Pareto: {e}")
+        
+        # Plota convergência se disponível
+        if gvns.track_metrics:
+            print(f"\nGerando gráfico de convergência...")
+            try:
+                convergence_fig = gvns.plot_convergence(f"EVRP GVNS Convergence - {instance_name}")
+                if convergence_fig:
+                    convergence_file = f"{output_dir}/convergence.png"
+                    convergence_fig.savefig(convergence_file, dpi=300, bbox_inches='tight')
+                    print(f"  Gráfico de convergência salvo em: {convergence_file}")
+                    plt.close(convergence_fig)
+                    
+            except Exception as e:
+                print(f"  Erro ao gerar gráfico de convergência: {e}")
+        
+        # Salva métricas em arquivo JSON
+        print(f"\nSalvando métricas em arquivo...")
+        try:
+            metrics_data = final_metrics.copy()
+            # Converte arrays numpy para listas para serialização JSON
+            for key, value in metrics_data.items():
+                if hasattr(value, 'tolist'):
+                    metrics_data[key] = value.tolist()
+            
+            metrics_file = f"{output_dir}/metrics.json"
+            with open(metrics_file, 'w') as f:
+                json.dump(metrics_data, f, indent=2)
+            print(f"  Métricas salvas em: {metrics_file}")
+            
+        except Exception as e:
+            print(f"  Erro ao salvar métricas: {e}")
 
     # Mostra resultados finais
     print("\n" + "="*70)

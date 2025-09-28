@@ -27,13 +27,15 @@ tendo um conjunto não-dominado.
 
 import random
 import copy
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+import matplotlib.pyplot as plt
 from EVRP.solution import Solution
+from EVRP.metrics import EVRPMetrics
 
 class GVNS:
     def __init__(self, instance, 
                  ns: int = 5, na: int = 50, ls_max_iter: int = 10,  max_evaluations: int = 10000, 
-                 perturbation = None, local_search = None):
+                 perturbation = None, local_search = None, track_metrics: bool = True):
         """
         Inicializa o algoritmo GVNS
         
@@ -45,6 +47,7 @@ class GVNS:
             max_evaluations: Número máximo de avaliações
             perturbation: Lista de algoritmos de perturbação (se None, usa padrão)
             local_search: Lista de algoritmos de busca local (se None, usa padrão)
+            track_metrics: Whether to track Pareto quality metrics during execution
         """
         self.instance = instance
         self.ns = ns
@@ -52,9 +55,16 @@ class GVNS:
         self.ls_max_iter = ls_max_iter
         self.max_evaluations = max_evaluations
         self.evaluation_count = 0
+        self.track_metrics = track_metrics
         
         self.pertubation_algorithms = perturbation
         self.local_search_algorithms = local_search
+        
+        # Initialize metrics tracking
+        if self.track_metrics:
+            self.metrics = EVRPMetrics()
+            self.archive_history = []
+            self.metrics_iterations = []
 
     def is_non_dominated(self, solution: Solution, archive: List[Solution]) -> bool:
         """
@@ -128,6 +138,66 @@ class GVNS:
 
         return non_dominated, changed
     
+    def _track_metrics(self, archive: List[Solution], iteration: int):
+        """
+        Track metrics for current archive state.
+        
+        Args:
+            archive: Current archive of solutions
+            iteration: Current iteration number
+        """
+        if not self.track_metrics:
+            return
+        
+        # Store archive snapshot
+        archive_copy = copy.deepcopy(archive)
+        self.archive_history.append(archive_copy)
+        self.metrics_iterations.append(iteration)
+    
+    def get_convergence_data(self) -> Optional[dict]:
+        """
+        Get convergence data for metrics tracking.
+        
+        Returns:
+            Dict with convergence data or None if metrics tracking is disabled
+        """
+        if not self.track_metrics or not self.archive_history:
+            return None
+        
+        return self.metrics.track_convergence(self.archive_history, self.metrics_iterations)
+    
+    def plot_convergence(self, title: str = "EVRP GVNS Convergence") -> Optional[plt.Figure]:
+        """
+        Plot convergence of metrics during GVNS execution.
+        
+        Args:
+            title: Plot title
+            
+        Returns:
+            matplotlib Figure or None if metrics tracking is disabled
+        """
+        if not self.track_metrics:
+            return None
+        
+        convergence_data = self.get_convergence_data()
+        if convergence_data is None:
+            return None
+        
+        return self.metrics.plot_convergence_evrp(convergence_data, title)
+    
+    def get_final_metrics(self) -> Optional[dict]:
+        """
+        Get final metrics for the last archive state.
+        
+        Returns:
+            Dict with final metrics or None if metrics tracking is disabled
+        """
+        if not self.track_metrics or not self.archive_history:
+            return None
+        
+        final_archive = self.archive_history[-1]
+        return self.metrics.evaluate_solution_set(final_archive)
+    
     def _improve_solution(self, solution: Solution, iterate = False) -> Solution:
         candidate = copy.deepcopy(solution)
         method_idx = 0
@@ -150,7 +220,6 @@ class GVNS:
         for _ in range(self.ns):
             if self.evaluation_count >= self.max_evaluations:
                 break
-            print("here")
             candidate = self._improve_solution(candidate, iterate)
             candidate.evaluate()
             if candidate.is_feasible:
@@ -211,6 +280,9 @@ class GVNS:
         
         print(f"Arquivo A inicial criado com {len(archive)} soluções")
         
+        # Track initial metrics
+        self._track_metrics(archive, 0)
+        
         # Verifica se o arquivo inicial tem soluções factíveis
         if len(archive) == 0:
             print("❌ Nenhuma solução factível encontrada na população inicial!")
@@ -267,6 +339,9 @@ class GVNS:
             if not archive_changed:
                 print(f"  Nenhuma melhoria encontrada em {ls_iter} tentativas")
             
+            # Track metrics at end of iteration
+            self._track_metrics(archive, iteration)
+            
             # Verifica se ainda há avaliações disponíveis
             if self.evaluation_count >= self.max_evaluations:
                 print("Limite de avaliações atingido no loop principal")
@@ -276,5 +351,13 @@ class GVNS:
         print(f"Total de iterações: {iteration}")
         print(f"Total de avaliações: {self.evaluation_count}")
         print(f"Soluções não-dominadas encontradas: {len(archive)}")
+        
+        if self.track_metrics:
+            final_metrics = self.get_final_metrics()
+            if final_metrics:
+                print(f"\n📊 Métricas Finais:")
+                print(f"  Spread Measure (Δ): {final_metrics['spread_measure']:.4f}")
+                print(f"  Hypervolume (HV): {final_metrics['hypervolume']:.4f}")
+                print(f"  Soluções factíveis: {final_metrics['num_feasible']}/{final_metrics['num_solutions']}")
         
         return archive
