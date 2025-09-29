@@ -13,15 +13,6 @@ class RechargeRealocation:
         self.instance = instance
 
     def local_search(self, solution: 'Solution') -> bool:
-        """
-        Apply recharge relocation to optimize recharge station placement in routes.
-        
-        Args:
-            solution: The solution to optimize
-            
-        Returns:
-            bool: True if any improvement was made, False otherwise
-        """
         improved = False
         
         for route in solution.routes:
@@ -29,30 +20,21 @@ class RechargeRealocation:
                 improved = True
         
         if improved:
-            # Re-evaluate the entire solution to ensure all routes are feasible
             solution.evaluate()
             
-            # Double-check that the solution is still feasible after all modifications
             if not solution.is_feasible:
                 print("Warning: Recharge relocation made solution infeasible")
         
         return improved
     
     def _optimize_route(self, route: Route) -> bool:
-        """
-        Optimize a single route by relocating recharge stations.
-        
-        Args:
-            route: The route to optimize
-            
-        Returns:
-            bool: True if the route was improved, False otherwise
-        """
-        # Extract customer sequence (excluding recharge stations)
         customer_sequence = self._extract_customer_sequence(route)
         
-        if len(customer_sequence) < 3:  # Need at least depot, customer, depot
+        if len(customer_sequence) < 3: 
             return False
+        
+        original_cost = route.total_cost
+        original_distance = route.total_distance
         
         total_distance = self._calculate_total_distance(customer_sequence)
         
@@ -81,7 +63,9 @@ class RechargeRealocation:
                 route.evaluate(self.instance)
                 return False
             else:
-                return True 
+                improvement = (route.total_cost < original_cost or 
+                              route.total_distance < original_distance)
+                return improvement
         
         a, b = self._find_recharge_interval(customer_sequence, AT)
         if a > b:
@@ -97,12 +81,14 @@ class RechargeRealocation:
                 self._revert_recharge_optimization(route, customer_sequence, best_improvement)
                 route.evaluate(self.instance)
                 return False
-            return True
+            
+            improvement = (route.total_cost < original_cost or 
+                          route.total_distance < original_distance)
+            return improvement
         
         return False
     
     def _extract_customer_sequence(self, route: Route) -> List[Node]:
-        """Extract the sequence of customers (including depot) from a route, excluding recharge stations."""
         sequence = []
         for node in route.nodes:
             if node.type in [NodeType.CUSTOMER, NodeType.DEPOT]:
@@ -110,7 +96,6 @@ class RechargeRealocation:
         return sequence
     
     def _calculate_total_distance(self, customer_sequence: List[Node]) -> float:
-        """Calculate the total distance between consecutive customers in the sequence."""
         total_distance = 0
         for i in range(len(customer_sequence) - 1):
             from_node = customer_sequence[i]
@@ -119,16 +104,6 @@ class RechargeRealocation:
         return total_distance
     
     def _find_recharge_interval(self, customer_sequence: List[Node], AT: float) -> Tuple[int, int]:
-        """
-        Find the interval [a, b] where a recharge station can be optimally placed.
-        
-        Args:
-            customer_sequence: Sequence of customers (including depot)
-            AT: Maximum range (battery capacity / consumption rate)
-            
-        Returns:
-            Tuple[int, int]: The interval [a, b] where a <= b indicates feasible placement
-        """
         h = len(customer_sequence)
         
         a = h
@@ -171,30 +146,23 @@ class RechargeRealocation:
         best_option = None
         best_cost = float('inf')
         
-        # Check each position in the interval [a, b]
         for i in range(a, b + 1):
             if i >= len(customer_sequence) - 1:
                 continue
                 
-            # Check each recharge station
             for station in self.instance.stations:
-                # Check if station is reachable from position i
                 if not self._is_station_reachable(customer_sequence, i, station):
                     continue
                 
-                # Check each available technology
                 for tech in station.technologies:
-                    # Calculate minimum energy needed
                     min_energy = self._calculate_min_energy_needed(customer_sequence, i, station)
                     
                     if min_energy is None:
                         continue
                     
-                    # Check if this option is feasible and cheaper
                     option_cost = min_energy * tech.cost_per_kwh
                     
                     if option_cost < best_cost:
-                        # Verify time constraint
                         if self._verify_time_constraint(customer_sequence, i, station, tech, min_energy):
                             best_option = {
                                 'station': station,
@@ -211,19 +179,15 @@ class RechargeRealocation:
         if position >= len(customer_sequence) - 1:
             return False
         
-        # Check if we can reach the station from the current position
         current_node = customer_sequence[position]
         next_node = customer_sequence[position + 1]
         
-        # Calculate distances
         dist_to_station = self.instance.distance_matrix[current_node.id][station.id]
         dist_from_station = self.instance.distance_matrix[station.id][next_node.id]
         
-        # Check if the detour is reasonable (not too long)
         direct_distance = self.instance.distance_matrix[current_node.id][next_node.id]
         detour_distance = dist_to_station + dist_from_station
         
-        # Allow some reasonable detour (e.g., 50% more than direct)
         return detour_distance <= direct_distance * 1.5
     
     def _calculate_min_energy_needed(self, customer_sequence: List[Node], position: int, station: 'Station') -> float:
@@ -238,8 +202,6 @@ class RechargeRealocation:
         Returns:
             float: Minimum energy needed, or None if not feasible
         """
-        # Simulate the route with the recharge station
-        # Calculate energy consumption from station to end
         energy_consumed = 0
         current_node = station
         

@@ -55,7 +55,6 @@ def process_single_instance(instance_file):
             ## reinsertion
         ],
         perturbation=[
-            Relocate(instance, use_incremental_eval=False, max_iter=10),
             TwoOpt(instance, max_iter=20),
             TwoOptStar(instance, max_iter=20),
         ],

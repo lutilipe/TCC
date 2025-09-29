@@ -201,8 +201,7 @@ class GVNS:
     def _improve_solution(self, solution: Solution, iterate = False) -> Solution:
         candidate = copy.deepcopy(solution)
         method_idx = 0
-        maxTries = 0
-        while method_idx < len(self.local_search_algorithms) and maxTries < 10:
+        while method_idx < len(self.local_search_algorithms):
             method = self.local_search_algorithms[method_idx]
             improved = method.local_search(candidate)
             self.evaluation_count += 1
@@ -210,7 +209,6 @@ class GVNS:
                 method_idx = 0
             else:
                 method_idx = method_idx + 1
-                maxTries = maxTries + 1
             
         return candidate
 
