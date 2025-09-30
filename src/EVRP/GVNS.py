@@ -149,7 +149,6 @@ class GVNS:
         if not self.track_metrics:
             return
         
-        # Store archive snapshot
         archive_copy = copy.deepcopy(archive)
         self.archive_history.append(archive_copy)
         self.metrics_iterations.append(iteration)
@@ -204,7 +203,7 @@ class GVNS:
         while method_idx < len(self.local_search_algorithms):
             method = self.local_search_algorithms[method_idx]
             improved = method.local_search(candidate)
-            self.evaluation_count += 1
+            print(improved, method_idx)
             if improved and iterate:
                 method_idx = 0
             else:
@@ -218,6 +217,7 @@ class GVNS:
         for _ in range(self.ns):
             if self.evaluation_count >= self.max_evaluations:
                 break
+            self.evaluation_count += 1
             candidate = self._improve_solution(candidate, iterate)
             candidate.evaluate()
             if candidate.is_feasible:

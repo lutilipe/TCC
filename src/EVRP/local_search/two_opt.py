@@ -9,19 +9,10 @@ if TYPE_CHECKING:
     from EVRP.solution import Solution
 
 class TwoOpt:
-    def __init__(self, instance: Instance, max_iter = 3):
+    def __init__(self, instance: Instance, max_iter = 1):
         self.instance = instance
         self.max_iter = max_iter
 
-    def run(self, solution: 'Solution') -> bool:
-        """
-        Apply 2-opt to all routes in a solution.
-        Returns True if any improvement was made, False otherwise.
-        """
-        route_idx = random.randint(0, len(solution.routes) - 1)
-        route = solution.routes[route_idx]
-        return self.two_opt(route)
-    
     def local_search(self, solution: 'Solution') -> bool:
         """
         Apply 2-opt perturbation to all routes in a solution.
@@ -29,7 +20,9 @@ class TwoOpt:
         """
         improved = False
         for _ in range(self.max_iter):
-            if self.run(solution):
+            route_idx = random.randint(0, len(solution.routes) - 1)
+            route = solution.routes[route_idx]
+            if self.two_opt(route):
                 improved = True
         
         return improved
@@ -40,7 +33,9 @@ class TwoOpt:
         Returns True if any improvement was made, False otherwise.
         """
         for _ in range(self.max_iter):
-            self.run(solution)
+            route_idx = random.randint(0, len(solution.routes) - 1)
+            route = solution.routes[route_idx]
+            self.two_opt_random(route)
         
         return solution
     
@@ -59,22 +54,18 @@ class TwoOpt:
         while improved:
             improved = False
             
-            # Try all possible 2-opt swaps
-            for i in range(1, len(current_route.nodes) - 2):  # Start after depot
-                for j in range(i + 1, len(current_route.nodes) - 1):  # End before depot
-                    if j - i == 1:  # Skip adjacent edges
+            for i in range(1, len(current_route.nodes) - 2):
+                for j in range(i + 1, len(current_route.nodes) - 1):
+                    if j - i == 1:
                         continue
                     
-                    # Create new route by reversing the segment between i and j
                     new_route = copy.deepcopy(current_route)
                     new_route.nodes = (current_route.nodes[:i] + 
                                      current_route.nodes[i:j+1][::-1] + 
                                      current_route.nodes[j+1:])
                     
-                    # Evaluate the new route
                     new_route.evaluate(self.instance)
                     
-                    # Check if the new route is better
                     if new_route.is_feasible and self._is_better_route(new_route, best_route):
                         best_route = new_route
                         current_route = new_route
@@ -83,13 +74,38 @@ class TwoOpt:
                 if improved:
                     break
         
-        # Update the original route if improvement was found
         if self._is_better_route(best_route, route):
             route.nodes = best_route.nodes
             route.charging_decisions = best_route.charging_decisions
             route.evaluate(self.instance)
             return True
         
+        return False
+    
+    def two_opt_random(self, route: Route) -> bool:
+        """
+        Apply 2-opt intra-route optimization to a single route.
+        Returns True if any improvement was made, False otherwise.
+        """
+        if len(route.nodes) <= 3:
+            return False
+            
+        i = random.randint(1, len(route.nodes) - 3)
+        j = random.randint(i + 1, len(route.nodes) - 2)
+
+        new_route = copy.deepcopy(route)
+        new_route.nodes = (
+            route.nodes[:i] + 
+            route.nodes[i:j+1][::-1] + 
+            route.nodes[j+1:]
+        )
+        new_route.evaluate(self.instance)
+        if self._is_better_route(new_route, route):
+            route.nodes = new_route.nodes
+            route.charging_decisions = new_route.charging_decisions
+            route.evaluate(self.instance)
+            return True
+
         return False
     
     def _is_better_route(self, route1: Route, route2: Route) -> bool:

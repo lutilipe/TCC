@@ -38,7 +38,6 @@ def process_single_instance(instance_file):
     
     print(f"População inicial criada com {len(initial_solutions)} soluções")
     
-    # Executa o algoritmo GVNS com métricas
     print("\n" + "="*70)
     gvns = GVNS(
         instance=instance,
@@ -48,23 +47,20 @@ def process_single_instance(instance_file):
         max_evaluations=1000,  # Máximo de avaliações,
         local_search=[
             #Relocate(instance, use_incremental_eval=True, early_termination=True),
-            TwoOpt(instance, max_iter=5),
-            TwoOptStar(instance, max_iter=3),
+            TwoOptStar(instance),
+            TwoOpt(instance),
             RechargeRealocation(instance)
-            ## TODO
-            ## reinsertion
         ],
         perturbation=[
-            TwoOpt(instance, max_iter=20),
-            TwoOptStar(instance, max_iter=20),
+            TwoOpt(instance, max_iter=50),
+            TwoOptStar(instance, max_iter=50),
         ],
-        track_metrics=True  # Habilita rastreamento de métricas
+        track_metrics=True
     )
             
     
     final_solutions = gvns.run(initial_solutions)
 
-    # Análise de métricas Pareto
     print("\n" + "="*70)
     print("ANÁLISE DE MÉTRICAS PARETO")
     print("="*70)
@@ -72,7 +68,7 @@ def process_single_instance(instance_file):
     metrics = EVRPMetrics()
     
     # Analisa soluções finais
-    if final_solutions:
+    if final_solutions and len(final_solutions) > 1:
         final_metrics = metrics.evaluate_solution_set(final_solutions)
         
         print(f"📊 Métricas de Qualidade Pareto:")
@@ -140,12 +136,6 @@ def process_single_instance(instance_file):
         
         # Ordena soluções por qualidade
         final_solutions.sort(key=lambda x: (x.total_cost, x.total_distance))
-
-        for idx, solution in enumerate(final_solutions):
-            print(f"SOL: {idx+1}")
-            for route in solution.routes:
-                for id in route.charging_decisions:
-                    print(route.charging_decisions[id][0].id)
         
         print("\nTop melhores soluções:")
         print("Rank | Distância | Veículos | Custo   | Factível")
