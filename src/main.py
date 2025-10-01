@@ -13,4 +13,4 @@ if __name__ == "__main__":
             process_single_instance(sys.argv[1])
     else:
         # Processa instância padrão
-        process_single_instance("./data/c101_21.txt")
+        process_single_instance("./data/c105_21.txt")

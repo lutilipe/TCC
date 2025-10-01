@@ -321,7 +321,7 @@ class GVNS:
                 x_prime = self.perturbation(x)
                 
                 # Passo 16: Aplica busca local NS vezes
-                local_solutions = self.local_search(x_prime, False)
+                local_solutions = self.local_search(x_prime, True)
                 
                 # Passo 17: Atualiza arquivo A
                 old_size = len(archive)

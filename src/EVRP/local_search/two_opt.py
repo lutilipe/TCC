@@ -9,9 +9,10 @@ if TYPE_CHECKING:
     from EVRP.solution import Solution
 
 class TwoOpt:
-    def __init__(self, instance: Instance, max_iter = 1):
+    def __init__(self, instance: Instance, max_iter = 1, select_best = True):
         self.instance = instance
         self.max_iter = max_iter
+        self.select_best = select_best
 
     def local_search(self, solution: 'Solution') -> bool:
         """
@@ -74,7 +75,7 @@ class TwoOpt:
                 if improved:
                     break
         
-        if self._is_better_route(best_route, route):
+        if best_route.is_feasible and self._is_better_route(best_route, route):
             route.nodes = best_route.nodes
             route.charging_decisions = best_route.charging_decisions
             route.evaluate(self.instance)
@@ -100,7 +101,7 @@ class TwoOpt:
             route.nodes[j+1:]
         )
         new_route.evaluate(self.instance)
-        if self._is_better_route(new_route, route):
+        if new_route.is_feasible and self._is_better_route(new_route, route):
             route.nodes = new_route.nodes
             route.charging_decisions = new_route.charging_decisions
             route.evaluate(self.instance)
@@ -113,6 +114,9 @@ class TwoOpt:
         Check if route1 is better than route2.
         A route is better if it's feasible and has lower total distance or cost.
         """
+        if not self.select_best:
+            return True
+
         if not route1.is_feasible:
             return False
         

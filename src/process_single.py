@@ -52,8 +52,8 @@ def process_single_instance(instance_file):
             RechargeRealocation(instance)
         ],
         perturbation=[
-            TwoOpt(instance, max_iter=50),
-            TwoOptStar(instance, max_iter=50),
+            TwoOpt(instance, max_iter=50, select_best=False),
+            TwoOptStar(instance, max_iter=50, select_best=False),
         ],
         track_metrics=True
     )

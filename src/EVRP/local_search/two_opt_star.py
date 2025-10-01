@@ -9,9 +9,10 @@ if TYPE_CHECKING:
     from EVRP.solution import Solution
 
 class TwoOptStar:
-    def __init__(self, instance: Instance, max_iter: int = 1):
+    def __init__(self, instance: Instance, max_iter: int = 1, select_best = True):
         self.instance = instance
         self.max_iter = max_iter
+        self.select_best = select_best
 
     def local_search(self, solution: 'Solution') -> bool:
         """
@@ -213,6 +214,9 @@ class TwoOptStar:
         1. Both routes are feasible
         2. The total distance or cost is reduced
         """
+        if not self.select_best:
+            return True
+
         if not new_route1.is_feasible or not new_route2.is_feasible:
             return False
         
