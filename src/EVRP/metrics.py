@@ -196,8 +196,14 @@ class EVRPMetrics(ParetoMetrics):
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         fig.suptitle(title, fontsize=16, fontweight='bold')
         
+        sorted_idx = objectives[:, 0].argsort()
+        pareto_sorted = objectives[sorted_idx]
+
         ax.scatter(objectives[:, 0], objectives[:, 1], 
-                c='blue', alpha=0.7, s=50, label='Soluções', zorder=3)
+                c='blue', alpha=1, s=50, label='Soluções', zorder=3)
+
+        ax.plot(pareto_sorted[:, 0], pareto_sorted[:, 1], 
+                c='blue', linewidth=2, alpha=0.8, zorder=2)
         
         if show_reference_points:
             metrics = self.evaluate_solution_set(solutions)
@@ -212,7 +218,6 @@ class EVRPMetrics(ParetoMetrics):
                     c='red', marker='*', s=200, 
                     label='Ponto Nadir', zorder=4, edgecolors='darkred', linewidth=2)
             
-            # Bounding box
             ax.plot([utopian[0], nadir[0]], [utopian[1], utopian[1]], 'k--', alpha=0.5, linewidth=1)
             ax.plot([utopian[0], nadir[0]], [nadir[1], nadir[1]], 'k--', alpha=0.5, linewidth=1)
             ax.plot([utopian[0], utopian[0]], [utopian[1], nadir[1]], 'k--', alpha=0.5, linewidth=1)
@@ -225,10 +230,6 @@ class EVRPMetrics(ParetoMetrics):
         # Legend outside plot
         ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3, fontsize=10, frameon=False)
         
-        # Remove top and right spines
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        
         if show_metrics:
             metrics = self.evaluate_solution_set(solutions)
             metrics_text = f"""
@@ -240,6 +241,7 @@ class EVRPMetrics(ParetoMetrics):
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray"))
         
         plt.tight_layout(rect=[0, 0.05, 1, 1])  # leave space for legend
+        ax.grid(True, linestyle="--", alpha=0.6)
         return fig
 
     
