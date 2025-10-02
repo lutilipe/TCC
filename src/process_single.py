@@ -9,6 +9,7 @@ from EVRP.local_search.relocate import Relocate
 from EVRP.local_search.two_opt import TwoOpt
 from EVRP.local_search.two_opt_star import TwoOptStar
 from EVRP.local_search.depot_reassignment import DepotReassignment
+from EVRP.local_search.exchange import Exchange
 from EVRP.metrics import EVRPMetrics
 from utils import plot_solution, print_instance_summary
 
@@ -46,14 +47,18 @@ def process_single_instance(instance_file):
         ls_max_iter=5, # Máximo de tentativas de busca local
         max_evaluations=1000,  # Máximo de avaliações,
         local_search=[
-            #Relocate(instance, use_incremental_eval=True, early_termination=True),
             TwoOptStar(instance),
             TwoOpt(instance),
+            Exchange(instance),
+            Relocate(instance),
             RechargeRealocation(instance)
         ],
         perturbation=[
             TwoOpt(instance, max_iter=50, select_best=False),
             TwoOptStar(instance, max_iter=50, select_best=False),
+            Exchange(instance, max_iter=50, select_best=False),
+            DepotReassignment(instance, k=5),
+            Relocate(instance, max_iter=50, select_best=False),
         ],
         track_metrics=True
     )
@@ -80,14 +85,22 @@ def process_single_instance(instance_file):
         
         # Plota fronteira Pareto
         print(f"\nGerando visualização da fronteira Pareto...")
+
+        instance_name = os.path.basename(instance_file).replace('.txt', '')
+        instance_output_dir = f"output/{instance_name}"
+
+        if os.path.exists(instance_output_dir):
+            import shutil
+            shutil.rmtree(instance_output_dir)
+            print(f" ✓ Diretório {instance_output_dir} limpo")
+        
+        os.makedirs(instance_output_dir, exist_ok=True)
+
         try:
-            instance_name = os.path.basename(instance_file).replace('.txt', '')
-            output_dir = f"output/{instance_name}"
-            os.makedirs(output_dir, exist_ok=True)
             
             pareto_fig = metrics.plot_evrp_pareto_front(final_solutions, 
-                                                       f"EVRP Pareto Front - {instance_name}")
-            pareto_file = f"{output_dir}/pareto_front.png"
+                                                       f"EVRP Pareto Front - {instance_name}", False)
+            pareto_file = f"{instance_output_dir}/pareto_front.png"
             pareto_fig.savefig(pareto_file, dpi=300, bbox_inches='tight')
             print(f"  Fronteira Pareto salva em: {pareto_file}")
             plt.close(pareto_fig)
@@ -101,7 +114,7 @@ def process_single_instance(instance_file):
             try:
                 convergence_fig = gvns.plot_convergence(f"EVRP GVNS Convergence - {instance_name}")
                 if convergence_fig:
-                    convergence_file = f"{output_dir}/convergence.png"
+                    convergence_file = f"{instance_output_dir}/convergence.png"
                     convergence_fig.savefig(convergence_file, dpi=300, bbox_inches='tight')
                     print(f"  Gráfico de convergência salvo em: {convergence_file}")
                     plt.close(convergence_fig)
@@ -118,7 +131,7 @@ def process_single_instance(instance_file):
                 if hasattr(value, 'tolist'):
                     metrics_data[key] = value.tolist()
             
-            metrics_file = f"{output_dir}/metrics.json"
+            metrics_file = f"{instance_output_dir}/metrics.json"
             with open(metrics_file, 'w') as f:
                 json.dump(metrics_data, f, indent=2)
             print(f"  Métricas salvas em: {metrics_file}")
@@ -153,26 +166,22 @@ def process_single_instance(instance_file):
         
         # Plota todas as soluções
         print(f"\nGerando visualizações para todas as soluções...")
-        try:
-            # Cria diretório de saída baseado no nome do arquivo de entrada
-            instance_name = os.path.basename(instance_file).replace('.txt', '')
-            output_dir = f"output/{instance_name}"
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Plota cada solução
+        try:            
             for i, sol in enumerate(final_solutions):
                 rank = i + 1
-                plot_file = f"{output_dir}/rank{rank}.png"
+                plot_file = f"{instance_output_dir}/rank{rank}.png"
                 plot_solution(instance, sol, save_path=plot_file)
-                print(f"  Rank {rank}: Visualização salva em {plot_file}")
+                print(f" Rank {rank}: Visualização salva em {plot_file}")
             
-            print(f"Todas as {len(final_solutions)} visualizações salvas com sucesso!")
+            print(f" ✓ Todas as {len(final_solutions)} visualizações salvas em {instance_output_dir}/")
+            
         except Exception as e:
-            print(f"Erro ao gerar visualizações: {e}")
+            print(f" Erro ao gerar visualizações: {e}")
         
         print(f"\nSalvando soluções em arquivo...")
         try:
-            with open("gvns_solutions.txt", "w") as f:
+            solutions_file = f"{instance_output_dir}/gvns_solutions.txt"
+            with open(solutions_file, "w") as f:
                 f.write("Soluções não-dominadas encontradas pelo GVNS\n")
                 f.write("="*50 + "\n\n")
                 

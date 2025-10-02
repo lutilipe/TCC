@@ -33,9 +33,12 @@ from EVRP.solution import Solution
 from EVRP.metrics import EVRPMetrics
 
 class GVNS:
-    def __init__(self, instance, 
-                 ns: int = 5, na: int = 50, ls_max_iter: int = 10,  max_evaluations: int = 10000, 
-                 perturbation = None, local_search = None, track_metrics: bool = True):
+    def __init__(
+        self, instance, 
+        ns: int = 5, na: int = 50, ls_max_iter: int = 10,  max_evaluations: int = 10000, 
+        perturbation = None, local_search = None, track_metrics: bool = True,
+        max_archive_not_changed: int = 5
+    ):
         """
         Inicializa o algoritmo GVNS
         
@@ -55,6 +58,7 @@ class GVNS:
         self.ls_max_iter = ls_max_iter
         self.max_evaluations = max_evaluations
         self.evaluation_count = 0
+        self.max_archive_not_changed = 5
         self.track_metrics = track_metrics
         
         self.pertubation_algorithms = perturbation
@@ -203,7 +207,6 @@ class GVNS:
         while method_idx < len(self.local_search_algorithms):
             method = self.local_search_algorithms[method_idx]
             improved = method.local_search(candidate)
-            print(improved, method_idx)
             if improved and iterate:
                 method_idx = 0
             else:
@@ -289,7 +292,13 @@ class GVNS:
         
         # Passo 12-19: Loop principal do GVNS
         iteration = 0
-        while self.evaluation_count < self.max_evaluations:
+
+        archive_not_changed_count = 0
+
+        while (
+            self.evaluation_count < self.max_evaluations and 
+            archive_not_changed_count <= self.max_archive_not_changed
+        ):
             iteration += 1
             print(f"\nIteração {iteration} - Avaliações: {self.evaluation_count}/{self.max_evaluations}")
             
@@ -336,15 +345,16 @@ class GVNS:
             
             if not archive_changed:
                 print(f"  Nenhuma melhoria encontrada em {ls_iter} tentativas")
+                archive_not_changed_count+=1
+            else:
+                archive_not_changed_count = 0
             
-            # Track metrics at end of iteration
             self._track_metrics(archive, iteration)
             
-            # Verifica se ainda há avaliações disponíveis
             if self.evaluation_count >= self.max_evaluations:
                 print("Limite de avaliações atingido no loop principal")
                 break
-        
+
         print(f"\nAlgoritmo GVNS finalizado!")
         print(f"Total de iterações: {iteration}")
         print(f"Total de avaliações: {self.evaluation_count}")

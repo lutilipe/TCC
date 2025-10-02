@@ -87,7 +87,6 @@ class EVRPMetrics(ParetoMetrics):
         
         pareto_front = self.solutions_to_pareto_front(solutions)
         
-        # Filter out infeasible solutions (infinite values)
         feasible_mask = np.all(np.isfinite(pareto_front), axis=1)
         if not np.any(feasible_mask):
             return np.array([0.0, 0.0])
@@ -176,44 +175,60 @@ class EVRPMetrics(ParetoMetrics):
         }
     
     def plot_evrp_pareto_front(self, solutions: List[Solution], 
-                              title: str = "EVRP Pareto Front",
-                              show_metrics: bool = True) -> plt.Figure:
+                              title: str = "Fronteira Pareto",
+                              show_metrics: bool = True,
+                              show_reference_points: bool = True) -> plt.Figure:
         """
-        Plot EVRP Pareto front in 2D projections.
-        
-        Args:
-            solutions: List of EVRP Solution objects
-            title: Plot title
-            show_metrics: Whether to show metric values
-            
-        Returns:
-            matplotlib Figure object
+        Plot EVRP Pareto front in 2D projections with nadir and utopic points.
         """
         feasible_solutions = [sol for sol in solutions if sol.is_feasible]
         
         if len(feasible_solutions) < 2:
             fig, ax = plt.subplots(1, 1, figsize=(8, 6))
             ax.text(0.5, 0.5, 'Not enough feasible solutions to plot', 
-                   ha='center', va='center', transform=ax.transAxes)
+                    ha='center', va='center', transform=ax.transAxes)
             ax.set_title(title)
             return fig
         
         # Convert to objectives
         objectives = self.solutions_to_pareto_front(feasible_solutions)
         
-        # Create single 2D plot for distance vs cost
-        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         fig.suptitle(title, fontsize=16, fontweight='bold')
         
-        # Distance vs Cost
         ax.scatter(objectives[:, 0], objectives[:, 1], 
-                  c='blue', alpha=0.7, s=50)
-        ax.set_xlabel('Distância Total')
-        ax.set_ylabel('Custo Total')
-        ax.set_title('Distância x Custo')
-        ax.grid(True, alpha=0.3)
+                c='blue', alpha=0.7, s=50, label='Soluções', zorder=3)
         
-        # Add metrics text if requested
+        if show_reference_points:
+            metrics = self.evaluate_solution_set(solutions)
+            utopian = metrics['utopian_point']
+            nadir = metrics['nadir_point']
+            
+            ax.scatter(utopian[0], utopian[1], 
+                    c='green', marker='*', s=200, 
+                    label='Ponto Utopico', zorder=4, edgecolors='darkgreen', linewidth=2)
+            
+            ax.scatter(nadir[0], nadir[1], 
+                    c='red', marker='*', s=200, 
+                    label='Ponto Nadir', zorder=4, edgecolors='darkred', linewidth=2)
+            
+            # Bounding box
+            ax.plot([utopian[0], nadir[0]], [utopian[1], utopian[1]], 'k--', alpha=0.5, linewidth=1)
+            ax.plot([utopian[0], nadir[0]], [nadir[1], nadir[1]], 'k--', alpha=0.5, linewidth=1)
+            ax.plot([utopian[0], utopian[0]], [utopian[1], nadir[1]], 'k--', alpha=0.5, linewidth=1)
+            ax.plot([nadir[0], nadir[0]], [utopian[1], nadir[1]], 'k--', alpha=0.5, linewidth=1)
+        
+        ax.set_xlabel('Distância Total', fontsize=12)
+        ax.set_ylabel('Custo Total', fontsize=12)
+        ax.set_title('Distância x Custo', fontsize=14)
+        
+        # Legend outside plot
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3, fontsize=10, frameon=False)
+        
+        # Remove top and right spines
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
         if show_metrics:
             metrics = self.evaluate_solution_set(solutions)
             metrics_text = f"""
@@ -224,8 +239,9 @@ class EVRPMetrics(ParetoMetrics):
             fig.text(0.02, 0.02, metrics_text, fontsize=10, 
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray"))
         
-        plt.tight_layout()
+        plt.tight_layout(rect=[0, 0.05, 1, 1])  # leave space for legend
         return fig
+
     
     def track_convergence(self, archive_history: List[List[Solution]], 
                          iterations: List[int]) -> Dict[str, List[float]]:

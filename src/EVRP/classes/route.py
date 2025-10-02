@@ -14,7 +14,6 @@ class Route:
         self.is_feasible: bool = True
 
     def evaluate(self, instance: Instance):
-        """Evaluate a single route for feasibility and compute metrics"""
         if not self.nodes:
             self.is_feasible = False
             return
