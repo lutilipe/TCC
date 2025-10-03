@@ -117,9 +117,8 @@ class TwoOptStar:
         best_route1 = copy.deepcopy(route1)
         best_route2 = copy.deepcopy(route2)
         
-        # Try all possible 2-opt* swaps
-        for i in range(1, len(route1.nodes) - 1):  # Start after depot, end before depot
-            for j in range(1, len(route1.nodes) - 1):  # j can be depot
+        for i in range(1, len(route1.nodes) - 1):
+            for j in range(1, len(route2.nodes) - 1):
                 new_route1, new_route2 = self._create_new_routes(
                     route1, route2, i, j
                 )
@@ -127,11 +126,9 @@ class TwoOptStar:
                 if new_route1 is None or new_route2 is None:
                     continue
                 
-                # Evaluate the new routes
                 new_route1.evaluate(self.instance)
                 new_route2.evaluate(self.instance)
                 
-                # Check if the new routes are feasible and better
                 if (new_route1.is_feasible and new_route2.is_feasible and
                     self._is_better_solution(new_route1, new_route2, best_route1, best_route2)):
                     best_route1 = new_route1

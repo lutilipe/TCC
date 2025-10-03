@@ -30,19 +30,18 @@ class Exchange:
         """
         improved = False
         
-        # Try intra-route exchanges
         for route in solution.routes:
             if self._intra_route_exchange(route):
                 improved = True
-        
-        # Try inter-route exchanges
+
         if len(solution.routes) >= 2:
-            route_pairs = [(i, j) for i in range(len(solution.routes)) 
-                          for j in range(i + 1, len(solution.routes))]
+            route_indices = random.sample(range(len(solution.routes)), 2)
+            route1_idx, route2_idx = route_indices[0], route_indices[1]
             
-            for route1_idx, route2_idx in route_pairs:
-                if self._inter_route_exchange(solution.routes[route1_idx], solution.routes[route2_idx]):
-                    improved = True
+            route1 = solution.routes[route1_idx]
+            route2 = solution.routes[route2_idx]
+            if self._inter_route_exchange(route1, route2):
+                improved = True
         
         return improved
     
@@ -52,21 +51,14 @@ class Exchange:
         Returns the modified solution.
         """
         for _ in range(self.max_iter):
-            # Randomly choose between intra-route and inter-route exchange
             if len(solution.routes) == 1:
-                # Only intra-route exchange possible
                 route = random.choice(solution.routes)
                 self._intra_route_exchange_random(route)
             else:
-                # Choose between intra-route and inter-route
-                if random.random() < 0.5:
-                    # Intra-route exchange
-                    route = random.choice(solution.routes)
-                    self._intra_route_exchange_random(route)
-                else:
-                    # Inter-route exchange
-                    route1_idx, route2_idx = random.sample(range(len(solution.routes)), 2)
-                    self._inter_route_exchange_random(solution.routes[route1_idx], solution.routes[route2_idx])
+                route = random.choice(solution.routes)
+                self._intra_route_exchange_random(route)
+                route1_idx, route2_idx = random.sample(range(len(solution.routes)), 2)
+                self._inter_route_exchange_random(solution.routes[route1_idx], solution.routes[route2_idx])
         
         return solution
     
@@ -76,10 +68,9 @@ class Exchange:
         Swaps two customers within the same route.
         Returns True if any improvement was made, False otherwise.
         """
-        if len(route.nodes) <= 4:  # Need at least depot + 2 customers + depot
+        if len(route.nodes) <= 4:
             return False
         
-        # Find all customer positions (excluding depot at start and end)
         customer_positions = []
         for i in range(1, len(route.nodes) - 1):
             if route.nodes[i].type == NodeType.CUSTOMER:
@@ -91,26 +82,21 @@ class Exchange:
         best_route = copy.deepcopy(route)
         improved = False
         
-        # Try all possible customer swaps
-        for i in range(len(customer_positions)):
+        for i in range(len(customer_positions) - 1):
             for j in range(i + 1, len(customer_positions)):
                 pos1, pos2 = customer_positions[i], customer_positions[j]
                 
                 new_route = copy.deepcopy(route)
-                # Swap the customers
                 new_route.nodes[pos1], new_route.nodes[pos2] = new_route.nodes[pos2], new_route.nodes[pos1]
                 
                 new_route.evaluate(self.instance)
                 
                 if new_route.is_feasible and self._is_better_route(new_route, best_route):
                     best_route = new_route
-                    improved = True
-        
-        if improved:
-            route.nodes = best_route.nodes
-            route.charging_decisions = best_route.charging_decisions
-            route.evaluate(self.instance)
-            return True
+                    route.nodes = best_route.nodes
+                    route.charging_decisions = best_route.charging_decisions
+                    route.evaluate(self.instance)
+                    return True
         
         return False
     
@@ -123,7 +109,6 @@ class Exchange:
         if len(route.nodes) <= 4:
             return False
         
-        # Find all customer positions
         customer_positions = []
         for i in range(1, len(route.nodes) - 1):
             if route.nodes[i].type == NodeType.CUSTOMER:
@@ -132,11 +117,9 @@ class Exchange:
         if len(customer_positions) < 2:
             return False
         
-        # Randomly select two different customer positions
         pos1, pos2 = random.sample(customer_positions, 2)
         
         new_route = copy.deepcopy(route)
-        # Swap the customers
         new_route.nodes[pos1], new_route.nodes[pos2] = new_route.nodes[pos2], new_route.nodes[pos1]
         
         new_route.evaluate(self.instance)
@@ -155,18 +138,12 @@ class Exchange:
         Swaps two customers between different routes.
         Returns True if any improvement was made, False otherwise.
         """
-        # Find customer positions in both routes
         customers1 = self._get_customer_positions(route1)
         customers2 = self._get_customer_positions(route2)
         
         if len(customers1) == 0 or len(customers2) == 0:
             return False
         
-        best_route1 = copy.deepcopy(route1)
-        best_route2 = copy.deepcopy(route2)
-        improved = False
-        
-        # Try all possible customer swaps between routes
         for pos1 in customers1:
             for pos2 in customers2:
                 new_route1, new_route2 = self._create_swapped_routes(route1, route2, pos1, pos2)
@@ -178,20 +155,15 @@ class Exchange:
                 new_route2.evaluate(self.instance)
                 
                 if (new_route1.is_feasible and new_route2.is_feasible and
-                    self._is_better_solution(new_route1, new_route2, best_route1, best_route2)):
-                    best_route1 = new_route1
-                    best_route2 = new_route2
-                    improved = True
-        
-        if improved:
-            route1.nodes = best_route1.nodes
-            route1.charging_decisions = best_route1.charging_decisions
-            route1.evaluate(self.instance)
-            
-            route2.nodes = best_route2.nodes
-            route2.charging_decisions = best_route2.charging_decisions
-            route2.evaluate(self.instance)
-            return True
+                    self._is_better_solution(new_route1, new_route2, route1, route2)):
+                    route1.nodes = new_route1.nodes
+                    route1.charging_decisions = new_route1.charging_decisions
+                    route1.evaluate(self.instance)
+                    
+                    route2.nodes = new_route2.nodes
+                    route2.charging_decisions = new_route2.charging_decisions
+                    route2.evaluate(self.instance)
+                    return True
         
         return False
     
@@ -201,14 +173,12 @@ class Exchange:
         Randomly selects one customer from each route and swaps them.
         Returns True if improvement was made, False otherwise.
         """
-        # Find customer positions in both routes
         customers1 = self._get_customer_positions(route1)
         customers2 = self._get_customer_positions(route2)
         
         if len(customers1) == 0 or len(customers2) == 0:
             return False
         
-        # Randomly select one customer from each route
         pos1 = random.choice(customers1)
         pos2 = random.choice(customers2)
         
@@ -258,7 +228,6 @@ class Exchange:
             Tuple of new routes, or (None, None) if invalid
         """
         try:
-            # Create new routes
             new_route1 = Route()
             new_route1.nodes = route1.nodes.copy()
             new_route1.nodes[pos1] = route2.nodes[pos2]
@@ -267,11 +236,9 @@ class Exchange:
             new_route2.nodes = route2.nodes.copy()
             new_route2.nodes[pos2] = route1.nodes[pos1]
             
-            # Copy charging decisions (they remain the same since we only swap customers)
             new_route1.charging_decisions = route1.charging_decisions.copy()
             new_route2.charging_decisions = route2.charging_decisions.copy()
             
-            # Validate that both routes still start and end with depot
             if (new_route1.nodes[0].type != NodeType.DEPOT or 
                 new_route1.nodes[-1].type != NodeType.DEPOT or
                 new_route2.nodes[0].type != NodeType.DEPOT or 

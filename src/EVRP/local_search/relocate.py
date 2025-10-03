@@ -30,18 +30,19 @@ class Relocate:
         """
         improved = False
         
-        # Try intra-route relocations
         for route in solution.routes:
             if self._intra_route_relocate(route):
                 improved = True
         
-        # Try inter-route relocations
         if len(solution.routes) >= 2:
-            for route1_idx in range(len(solution.routes)):
-                for route2_idx in range(len(solution.routes)):
-                    if route1_idx != route2_idx:
-                        if self._inter_route_relocate(solution.routes[route1_idx], solution.routes[route2_idx]):
-                            improved = True
+            route_indices = random.sample(range(len(solution.routes)), 2)
+            route1_idx, route2_idx = route_indices[0], route_indices[1]
+            
+            route1 = solution.routes[route1_idx]
+            route2 = solution.routes[route2_idx]
+            if self._inter_route_relocate(route1, route2):
+                improved = True
+                        
         
         return improved
     
@@ -51,21 +52,15 @@ class Relocate:
         Returns the modified solution.
         """
         for _ in range(self.max_iter):
-            # Randomly choose between intra-route and inter-route relocate
             if len(solution.routes) == 1:
-                # Only intra-route relocate possible
                 route = random.choice(solution.routes)
                 self._intra_route_relocate_random(route)
             else:
-                # Choose between intra-route and inter-route
-                if random.random() < 0.5:
-                    # Intra-route relocate
-                    route = random.choice(solution.routes)
-                    self._intra_route_relocate_random(route)
-                else:
-                    # Inter-route relocate
-                    route1_idx, route2_idx = random.sample(range(len(solution.routes)), 2)
-                    self._inter_route_relocate_random(solution.routes[route1_idx], solution.routes[route2_idx])
+                route = random.choice(solution.routes)
+                self._intra_route_relocate_random(route)
+
+                route1_idx, route2_idx = random.sample(range(len(solution.routes)), 2)
+                self._inter_route_relocate_random(solution.routes[route1_idx], solution.routes[route2_idx])
         
         return solution
     
@@ -75,10 +70,9 @@ class Relocate:
         Moves one customer to a different position within the same route.
         Returns True if any improvement was made, False otherwise.
         """
-        if len(route.nodes) <= 4:  # Need at least depot + 2 customers + depot
+        if len(route.nodes) <= 4:
             return False
         
-        # Find all customer positions (excluding depot at start and end)
         customer_positions = []
         for i in range(1, len(route.nodes) - 1):
             if route.nodes[i].type == NodeType.CUSTOMER:
@@ -88,9 +82,7 @@ class Relocate:
             return False
         
         best_route = copy.deepcopy(route)
-        improved = False
         
-        # Try all possible customer relocations
         for customer_pos in customer_positions:
             for new_pos in range(1, len(route.nodes) - 1):
                 if new_pos == customer_pos:
@@ -104,13 +96,10 @@ class Relocate:
                 
                 if new_route.is_feasible and self._is_better_route(new_route, best_route):
                     best_route = new_route
-                    improved = True
-        
-        if improved:
-            route.nodes = best_route.nodes
-            route.charging_decisions = best_route.charging_decisions
-            route.evaluate(self.instance)
-            return True
+                    route.nodes = best_route.nodes
+                    route.charging_decisions = best_route.charging_decisions
+                    route.evaluate(self.instance)
+                    return True
         
         return False
     
@@ -123,7 +112,6 @@ class Relocate:
         if len(route.nodes) <= 4:
             return False
         
-        # Find all customer positions
         customer_positions = []
         for i in range(1, len(route.nodes) - 1):
             if route.nodes[i].type == NodeType.CUSTOMER:
@@ -132,10 +120,8 @@ class Relocate:
         if len(customer_positions) == 0:
             return False
         
-        # Randomly select a customer position
         customer_pos = random.choice(customer_positions)
         
-        # Randomly select a new position (excluding current position)
         available_positions = [i for i in range(1, len(route.nodes) - 1) if i != customer_pos]
         if not available_positions:
             return False
@@ -170,11 +156,9 @@ class Relocate:
         
         best_source = copy.deepcopy(source_route)
         best_target = copy.deepcopy(target_route)
-        improved = False
         
-        # Try moving each customer from source to target
         for customer_pos in source_customers:
-            for target_pos in range(1, len(target_route.nodes)):  # Can insert at any position except start
+            for target_pos in range(1, len(target_route.nodes) - 1):
                 new_source, new_target = self._create_inter_route_relocation(
                     source_route, target_route, customer_pos, target_pos
                 )
@@ -189,17 +173,14 @@ class Relocate:
                     self._is_better_solution(new_source, new_target, best_source, best_target)):
                     best_source = new_source
                     best_target = new_target
-                    improved = True
-        
-        if improved:
-            source_route.nodes = best_source.nodes
-            source_route.charging_decisions = best_source.charging_decisions
-            source_route.evaluate(self.instance)
-            
-            target_route.nodes = best_target.nodes
-            target_route.charging_decisions = best_target.charging_decisions
-            target_route.evaluate(self.instance)
-            return True
+                    source_route.nodes = best_source.nodes
+                    source_route.charging_decisions = best_source.charging_decisions
+                    source_route.evaluate(self.instance)
+                    
+                    target_route.nodes = best_target.nodes
+                    target_route.charging_decisions = best_target.charging_decisions
+                    target_route.evaluate(self.instance)
+                    return True
         
         return False
     
@@ -209,16 +190,13 @@ class Relocate:
         Randomly selects a customer from source route and moves it to target route.
         Returns True if improvement was made, False otherwise.
         """
-        # Find customer positions in source route
         source_customers = self._get_customer_positions(source_route)
         
         if len(source_customers) == 0:
             return False
         
-        # Randomly select a customer from source route
         customer_pos = random.choice(source_customers)
         
-        # Randomly select a position in target route (can be at the end before depot)
         target_pos = random.randint(1, len(target_route.nodes))
         
         new_source, new_target = self._create_inter_route_relocation(
@@ -273,24 +251,18 @@ class Relocate:
             if new_pos < 1 or new_pos >= len(route.nodes) - 1:
                 return None
             
-            # Create new route
             new_route = Route()
             new_route.nodes = route.nodes.copy()
             
-            # Remove customer from current position
             customer = new_route.nodes.pop(customer_pos)
             
-            # Adjust new_pos if necessary (since we removed an element)
             if new_pos > customer_pos:
                 new_pos -= 1
             
-            # Insert customer at new position
             new_route.nodes.insert(new_pos, customer)
             
-            # Copy charging decisions (they remain the same since we only move customers)
             new_route.charging_decisions = route.charging_decisions.copy()
             
-            # Validate that route still starts and ends with depot
             if (new_route.nodes[0].type != NodeType.DEPOT or 
                 new_route.nodes[-1].type != NodeType.DEPOT):
                 return None
@@ -320,21 +292,17 @@ class Relocate:
             if target_pos < 1 or target_pos > len(target_route.nodes):
                 return None, None
             
-            # Create new source route (remove customer)
             new_source = Route()
             new_source.nodes = source_route.nodes.copy()
             customer = new_source.nodes.pop(customer_pos)
             
-            # Create new target route (insert customer)
             new_target = Route()
             new_target.nodes = target_route.nodes.copy()
             new_target.nodes.insert(target_pos, customer)
             
-            # Copy charging decisions
             new_source.charging_decisions = source_route.charging_decisions.copy()
             new_target.charging_decisions = target_route.charging_decisions.copy()
             
-            # Validate that both routes still start and end with depot
             if (new_source.nodes[0].type != NodeType.DEPOT or 
                 new_source.nodes[-1].type != NodeType.DEPOT or
                 new_target.nodes[0].type != NodeType.DEPOT or 

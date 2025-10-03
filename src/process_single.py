@@ -45,17 +45,18 @@ def process_single_instance(instance_file):
         ns=5,           # Número de soluções por busca local
         na=50,          # Tamanho máximo do arquivo A
         ls_max_iter=5, # Máximo de tentativas de busca local
-        max_evaluations=100,  # Máximo de avaliações,
+        max_evaluations=1000,  # Máximo de avaliações,
         local_search=[
+            Exchange(instance),
+            Relocate(instance),
             TwoOptStar(instance),
             TwoOpt(instance),
-            RechargeRealocation(instance)
+            RechargeRealocation(instance),
         ],
         perturbation=[
             TwoOpt(instance, max_iter=50, select_best=False),
             TwoOptStar(instance, max_iter=50, select_best=False),
             Exchange(instance, max_iter=50, select_best=False),
-            DepotReassignment(instance, k=5),
             Relocate(instance, max_iter=50, select_best=False),
         ],
         track_metrics=True

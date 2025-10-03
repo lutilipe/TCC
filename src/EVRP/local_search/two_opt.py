@@ -49,37 +49,27 @@ class TwoOpt:
             return False
             
         best_route = copy.deepcopy(route)
-        improved = True
         current_route = copy.deepcopy(route)
 
-        while improved:
-            improved = False
-            
-            for i in range(1, len(current_route.nodes) - 2):
-                for j in range(i + 1, len(current_route.nodes) - 1):
-                    if j - i == 1:
-                        continue
-                    
-                    new_route = copy.deepcopy(current_route)
-                    new_route.nodes = (current_route.nodes[:i] + 
-                                     current_route.nodes[i:j+1][::-1] + 
-                                     current_route.nodes[j+1:])
-                    
-                    new_route.evaluate(self.instance)
-                    
-                    if new_route.is_feasible and self._is_better_route(new_route, best_route):
-                        best_route = new_route
-                        current_route = new_route
-                        improved = True
-                        break
-                if improved:
-                    break
-        
-        if best_route.is_feasible and self._is_better_route(best_route, route):
-            route.nodes = best_route.nodes
-            route.charging_decisions = best_route.charging_decisions
-            route.evaluate(self.instance)
-            return True
+        for i in range(1, len(current_route.nodes) - 2):
+            for j in range(i + 1, len(current_route.nodes) - 1):
+                if j - i == 1:
+                    continue
+                
+                new_route = copy.deepcopy(current_route)
+                new_route.nodes = (current_route.nodes[:i] + 
+                                    current_route.nodes[i:j+1][::-1] + 
+                                    current_route.nodes[j+1:])
+                
+                new_route.evaluate(self.instance)
+                
+                if new_route.is_feasible and self._is_better_route(new_route, best_route):
+                    best_route = new_route
+                    current_route = new_route
+                    route.nodes = best_route.nodes
+                    route.charging_decisions = best_route.charging_decisions
+                    route.evaluate(self.instance)
+                    return True
         
         return False
     
