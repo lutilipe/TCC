@@ -9,7 +9,12 @@ if TYPE_CHECKING:
     from EVRP.solution import Solution
 
 class Exchange:
-    def __init__(self, instance: Instance, max_iter: int = 1, select_best: bool = True):
+    def __init__(
+            self,
+            instance: Instance,
+            max_iter: int = 1, 
+            select_best: bool = True,
+            is_inter_route = False):
         """
         Initialize the Exchange Operator.
         
@@ -21,29 +26,30 @@ class Exchange:
         self.instance = instance
         self.max_iter = max_iter
         self.select_best = select_best
+        self.is_inter_route = is_inter_route
 
     def local_search(self, solution: 'Solution') -> bool:
         """
-        Apply exchange operator to improve the solution.
-        Tries both intra-route and inter-route exchanges.
+        Apply relocate operator to improve the solution.
+        Tries both intra-route and inter-route relocations.
         Returns True if any improvement was made, False otherwise.
         """
-        improved = False
-        
-        for route in solution.routes:
-            if self._intra_route_exchange(route):
-                improved = True
+        for route_idx, route in enumerate(solution.routes):
+            if not self.is_inter_route:
+                if self._intra_route_exchange(route):
+                    return True
+            else:
+                other_indices = [i for i in range(len(solution.routes)) if i != route_idx]
+                if not other_indices:
+                    continue
 
-        if len(solution.routes) >= 2:
-            route_indices = random.sample(range(len(solution.routes)), 2)
-            route1_idx, route2_idx = route_indices[0], route_indices[1]
-            
-            route1 = solution.routes[route1_idx]
-            route2 = solution.routes[route2_idx]
-            if self._inter_route_exchange(route1, route2):
-                improved = True
-        
-        return improved
+                other_idx = random.choice(other_indices)
+                route2 = solution.routes[other_idx]
+
+                if self._inter_route_exchange(route, route2):
+                    return True
+
+        return False
     
     def perturbation(self, solution: 'Solution') -> 'Solution':
         """

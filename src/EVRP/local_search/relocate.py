@@ -9,7 +9,12 @@ if TYPE_CHECKING:
     from EVRP.solution import Solution
 
 class Relocate:
-    def __init__(self, instance: Instance, max_iter: int = 1, select_best: bool = True):
+    def __init__(
+            self,
+            instance: Instance,
+            max_iter: int = 1, 
+            select_best: bool = True,
+            is_inter_route = False):
         """
         Initialize the Relocate Operator.
         
@@ -21,6 +26,7 @@ class Relocate:
         self.instance = instance
         self.max_iter = max_iter
         self.select_best = select_best
+        self.is_inter_route = is_inter_route
 
     def local_search(self, solution: 'Solution') -> bool:
         """
@@ -28,23 +34,22 @@ class Relocate:
         Tries both intra-route and inter-route relocations.
         Returns True if any improvement was made, False otherwise.
         """
-        improved = False
-        
-        for route in solution.routes:
-            if self._intra_route_relocate(route):
-                improved = True
-        
-        if len(solution.routes) >= 2:
-            route_indices = random.sample(range(len(solution.routes)), 2)
-            route1_idx, route2_idx = route_indices[0], route_indices[1]
-            
-            route1 = solution.routes[route1_idx]
-            route2 = solution.routes[route2_idx]
-            if self._inter_route_relocate(route1, route2):
-                improved = True
-                        
-        
-        return improved
+        for route_idx, route in enumerate(solution.routes):
+            if not self.is_inter_route:
+                if self._intra_route_relocate(route):
+                    return True
+            else:
+                other_indices = [i for i in range(len(solution.routes)) if i != route_idx]
+                if not other_indices:
+                    continue
+
+                other_idx = random.choice(other_indices)
+                route2 = solution.routes[other_idx]
+
+                if self._inter_route_relocate(route, route2):
+                    return True
+
+        return False
     
     def perturbation(self, solution: 'Solution') -> 'Solution':
         """
@@ -52,15 +57,11 @@ class Relocate:
         Returns the modified solution.
         """
         for _ in range(self.max_iter):
-            if len(solution.routes) == 1:
-                route = random.choice(solution.routes)
-                self._intra_route_relocate_random(route)
-            else:
-                route = random.choice(solution.routes)
-                self._intra_route_relocate_random(route)
+            route = random.choice(solution.routes)
+            self._intra_route_relocate_random(route)
 
-                route1_idx, route2_idx = random.sample(range(len(solution.routes)), 2)
-                self._inter_route_relocate_random(solution.routes[route1_idx], solution.routes[route2_idx])
+            route1_idx, route2_idx = random.sample(range(len(solution.routes)), 2)
+            self._inter_route_relocate_random(solution.routes[route1_idx], solution.routes[route2_idx])
         
         return solution
     

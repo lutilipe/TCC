@@ -42,10 +42,12 @@ def plot_solution(instance: Instance, solution: Solution, save_path: str = None)
                c='#d62728', marker='^', s=100, label='Estações de Recarga',
                edgecolor='black', zorder=4)
 
-    colors = plt.cm.tab10.colors
+    cmap = plt.get_cmap('cividis')
+
+    colors = [cmap(i / len(solution.routes)) for i in range(len(solution.routes))]
     route_metrics = []
     for i, route in enumerate(solution.routes):
-        color = colors[i % len(colors)]
+        color = colors[i]
         route_metrics.append(
             f"Rota {i+1}: {len([n for n in route.nodes if n.type==NodeType.CUSTOMER])} clientes | "
             f"€{route.total_cost:.2f} | {route.total_distance:.2f}km"

@@ -37,7 +37,6 @@ class GVNS:
         self, instance, 
         ns: int = 5, na: int = 50, ls_max_iter: int = 10,  max_evaluations: int = 10000, 
         perturbation = None, local_search = None, track_metrics: bool = True,
-        max_archive_not_changed: int = 5
     ):
         """
         Inicializa o algoritmo GVNS
@@ -201,8 +200,7 @@ class GVNS:
         final_archive = self.archive_history[-1]
         return self.metrics.evaluate_solution_set(final_archive)
     
-    def _improve_solution(self, solution: Solution, iterate = False) -> Solution:
-        candidate = copy.deepcopy(solution)
+    def _improve_solution(self, candidate: Solution, iterate = False) -> Solution:
         method_idx = 0
         while method_idx < len(self.local_search_algorithms):
             method = self.local_search_algorithms[method_idx]
@@ -216,10 +214,10 @@ class GVNS:
 
     def local_search(self, solution: Solution, iterate = False) -> List[Solution]:
         solutions = []
-        candidate = copy.deepcopy(solution)
         for _ in range(self.ns):
             if self.evaluation_count >= self.max_evaluations:
                 break
+            candidate = copy.deepcopy(solution)
             self.evaluation_count += 1
             candidate = self._improve_solution(candidate, iterate)
             candidate.evaluate()
@@ -293,12 +291,7 @@ class GVNS:
         # Passo 12-19: Loop principal do GVNS
         iteration = 0
 
-        archive_not_changed_count = 0
-
-        while (
-            self.evaluation_count < self.max_evaluations and 
-            archive_not_changed_count <= self.max_archive_not_changed
-        ):
+        while self.evaluation_count < self.max_evaluations:
             iteration += 1
             print(f"\nIteração {iteration} - Avaliações: {self.evaluation_count}/{self.max_evaluations}")
             
@@ -345,15 +338,19 @@ class GVNS:
             
             if not archive_changed:
                 print(f"  Nenhuma melhoria encontrada em {ls_iter} tentativas")
-                archive_not_changed_count+=1
-            else:
-                archive_not_changed_count = 0
             
             self._track_metrics(archive, iteration)
             
             if self.evaluation_count >= self.max_evaluations:
                 print("Limite de avaliações atingido no loop principal")
                 break
+
+        final_solutions = [solution for solution in archive]
+        self.evaluation_count = 0
+
+        for solution in final_solutions:
+            local_solutions = self.local_search(solution, True)
+            archive, changed = self.update_archive(archive, local_solutions)
 
         print(f"\nAlgoritmo GVNS finalizado!")
         print(f"Total de iterações: {iteration}")

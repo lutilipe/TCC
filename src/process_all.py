@@ -7,6 +7,8 @@ from EVRP.local_search.two_opt import TwoOpt
 from EVRP.local_search.two_opt_star import TwoOptStar
 from EVRP.local_search.depot_reassignment import DepotReassignment
 from EVRP.local_search.exchange import Exchange
+from EVRP.local_search.route_split import RouteSplit
+from EVRP.local_search.eliminate_route import EliminateRoute
 from EVRP.GVNS import GVNS
 from utils.plot_solution import plot_solution
 from utils.summary import print_instance_summary
@@ -49,6 +51,7 @@ def process_all_instances():
             twoOptStar = TwoOptStar(instance)
             exchangeOp = Exchange(instance)
             rechargeRealocation = RechargeRealocation(instance)
+            routeSplit = RouteSplit(instance)
             
             # Cria população inicial de soluções
             print("Criando população inicial...")
@@ -74,12 +77,14 @@ def process_all_instances():
                 na=50,          # Tamanho máximo do arquivo A
                 ls_max_iter=500, # Máximo de tentativas de busca local
                 max_evaluations=80,  # Máximo de avaliações,
-                local_search=[twoOpt, twoOptStar, exchangeOp, rechargeRealocation],
+                local_search=[twoOpt, twoOptStar, exchangeOp, rechargeRealocation, routeSplit],
                 perturbation=[
                     DepotReassignment(instance, k=2),  # Depot reassignment shake operator
                     twoOpt, 
                     twoOptStar,
-                    Exchange(instance, max_iter=10, select_best=False)
+                    Exchange(instance, max_iter=10, select_best=False),
+                    RouteSplit(instance, max_iter=5, select_best=False),
+                    EliminateRoute(instance, max_iter=1, select_best=False)
                 ]
             )
             

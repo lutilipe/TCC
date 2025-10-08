@@ -10,6 +10,8 @@ from EVRP.local_search.two_opt import TwoOpt
 from EVRP.local_search.two_opt_star import TwoOptStar
 from EVRP.local_search.depot_reassignment import DepotReassignment
 from EVRP.local_search.exchange import Exchange
+from EVRP.local_search.route_split import RouteSplit
+from EVRP.local_search.eliminate_route import EliminateRoute
 from EVRP.metrics import EVRPMetrics
 from utils import plot_solution, print_instance_summary
 
@@ -47,17 +49,18 @@ def process_single_instance(instance_file):
         ls_max_iter=5, # Máximo de tentativas de busca local
         max_evaluations=1000,  # Máximo de avaliações,
         local_search=[
-            Exchange(instance),
-            Relocate(instance),
-            TwoOptStar(instance),
             TwoOpt(instance),
+            Relocate(instance, is_inter_route=True),
+            Exchange(instance, is_inter_route=True),
+            Relocate(instance, is_inter_route=False),
+            Exchange(instance, is_inter_route=False),
+            TwoOptStar(instance),
             RechargeRealocation(instance),
         ],
         perturbation=[
-            TwoOpt(instance, max_iter=50, select_best=False),
-            TwoOptStar(instance, max_iter=50, select_best=False),
-            Exchange(instance, max_iter=50, select_best=False),
-            Relocate(instance, max_iter=50, select_best=False),
+            EliminateRoute(instance, max_iter=1),
+            #RouteSplit(instance, max_iter=1, select_best=False),
+            DepotReassignment(instance, k=1),
         ],
         track_metrics=True
     )
