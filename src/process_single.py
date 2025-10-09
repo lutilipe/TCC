@@ -59,7 +59,7 @@ def process_single_instance(instance_file):
         ],
         perturbation=[
             EliminateRoute(instance, max_iter=1),
-            #RouteSplit(instance, max_iter=1, select_best=False),
+            RouteSplit(instance, max_iter=1, select_best=False),
             DepotReassignment(instance, k=1),
         ],
         track_metrics=True

@@ -104,13 +104,13 @@ def create_evrp_instance(filename: str) -> Instance:
         instance.stations.append(node)
 
     # Set number of vehicles (heuristic: based on number of customers)
-    instance.num_vehicles = floor(max(1, len(data["customers"]) * 4))
+    instance.num_vehicles = floor(max(2, len(data["customers"]) / 4))
     
     # Create vehicle with parameters from file
     vehicle_params = data["vehicle_params"]
     instance.vehicle = Vehicle(
-        capacity=vehicle_params.get("capacity", vehicle_params.get("capacity", 200)),
-        battery_capacity=vehicle_params.get("battery_capacity", vehicle_params.get("battery_capacity", 79.79)),
+        capacity=vehicle_params.get("capacity", 200),
+        battery_capacity=vehicle_params.get("battery_capacity", 79.79),
         consumption_rate=vehicle_params.get("consumption_rate", 0.125),
     )
 

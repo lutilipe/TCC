@@ -213,7 +213,7 @@ class GVNS:
         return candidate
 
     def local_search(self, solution: Solution, iterate = False) -> List[Solution]:
-        solutions = []
+        solutions: List[Solution] = []
         for _ in range(self.ns):
             if self.evaluation_count >= self.max_evaluations:
                 break
@@ -236,7 +236,6 @@ class GVNS:
             self.evaluation_count += 1
             if new_solution.is_feasible:
                 perturbed_sol = copy.deepcopy(new_solution)
-                
         
         return perturbed_sol
     

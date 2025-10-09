@@ -72,43 +72,76 @@ class DepotReassignment:
 
     def _reassign_route_to_different_depot(self, route: Route) -> None:
         """
-        Reassign a route to a different depot by changing the start and end depot nodes.
-        
+        Try to reassign a route to a different pair of depots by changing
+        the start and end depot nodes. Keep the change only if the route
+        remains feasible after evaluation.
+
         Args:
             route: The route to reassign
         """
         if not route.nodes or len(route.nodes) < 2:
             return
-            
-        # Get current depot (first and last nodes should be the same depot)
-        current_depot = route.nodes[0]
+
+        original_start = route.nodes[0]
+        original_end = route.nodes[-1]
         
-        # Find a different depot
-        available_depots = [
-            depot for depot in self.instance.depots 
-            if depot.id != current_depot.id
+        # Store original state for restoration
+        original_charging = route.charging_decisions.copy()
+        
+        # Find available depots (different from current ones)
+        available_start_depots = [
+            depot for depot in self.instance.depots
+            if depot.id != original_start.id
         ]
+
+        available_end_depots = [
+            depot for depot in self.instance.depots
+            if depot.id != original_end.id
+        ]
+
+        if not available_start_depots or not available_end_depots:
+            return
         
-        if not available_depots:
-            return  # No other depots available
-            
-        # Select a random different depot
-        new_depot = random.choice(available_depots)
-        
-        # Update the route: replace first and last depot nodes
-        route.nodes[0] = new_depot
-        route.nodes[-1] = new_depot
-        
-        # Update charging decisions for the new depot
-        # Remove old depot charging decision
-        if current_depot.id in route.charging_decisions:
-            del route.charging_decisions[current_depot.id]
-        
-        # Add charging decision for new depot (full battery)
-        route.charging_decisions[new_depot.id] = (
-            self.instance.technologies[0],  # Use slow charging at depot
-            self.instance.vehicle.battery_capacity
-        )
+        random.shuffle(available_start_depots)
+        random.shuffle(available_end_depots)
+
+        # Try different depot combinations
+        for new_start in available_start_depots:
+            for new_end in available_end_depots:
+                # Update depot nodes
+                route.nodes[0] = new_start
+                route.nodes[-1] = new_end
+
+                # Update charging decisions
+                route.charging_decisions = original_charging.copy()
+                
+                # Remove charging decisions for original depots
+                if original_start.id in route.charging_decisions:
+                    del route.charging_decisions[original_start.id]
+                if original_end.id in route.charging_decisions:
+                    del route.charging_decisions[original_end.id]
+                
+                # Add charging decisions for new depots
+                route.charging_decisions[new_start.id] = (
+                    self.instance.technologies[0],
+                    self.instance.vehicle.battery_capacity
+                )
+                route.charging_decisions[new_end.id] = (
+                    self.instance.technologies[0],
+                    self.instance.vehicle.battery_capacity
+                )
+
+                # Evaluate feasibility
+                route.evaluate(self.instance)
+                if route.is_feasible:
+                    return  # Success - keep the changes
+
+        # If no feasible reassignment found, restore original state
+        route.nodes[0] = original_start
+        route.nodes[-1] = original_end
+        route.charging_decisions = original_charging
+        route.evaluate(self.instance)
+
 
     def _get_route_depot(self, route: Route):
         """
