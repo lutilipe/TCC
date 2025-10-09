@@ -14,7 +14,7 @@ class Exchange:
             instance: Instance,
             max_iter: int = 1, 
             select_best: bool = True,
-            is_inter_route = False):
+            is_intra_route = False):
         """
         Initialize the Exchange Operator.
         
@@ -26,7 +26,7 @@ class Exchange:
         self.instance = instance
         self.max_iter = max_iter
         self.select_best = select_best
-        self.is_inter_route = is_inter_route
+        self.is_intra_route = is_intra_route
 
     def local_search(self, solution: 'Solution') -> bool:
         """
@@ -35,7 +35,7 @@ class Exchange:
         Returns True if any improvement was made, False otherwise.
         """
         for route_idx, route in enumerate(solution.routes):
-            if not self.is_inter_route:
+            if not self.is_intra_route:
                 if self._intra_route_exchange(route):
                     return True
             else:
