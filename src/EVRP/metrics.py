@@ -299,7 +299,7 @@ class EVRPMetrics(ParetoMetrics):
                        'b-', linewidth=2, marker='o', markersize=4)
         axes[0, 0].set_xlabel("Iteração")
         axes[0, 0].set_ylabel('Spread Measure (Δ)')
-        axes[0, 0].set_title('Spread Measure Convergence')
+        axes[0, 0].set_title('Convergência Spread Measure')
         axes[0, 0].grid(True, alpha=0.3)
         
         # Hypervolume
@@ -307,7 +307,7 @@ class EVRPMetrics(ParetoMetrics):
                        'r-', linewidth=2, marker='s', markersize=4)
         axes[0, 1].set_xlabel("Iteração")
         axes[0, 1].set_ylabel('Hypervolume (HV)')
-        axes[0, 1].set_title('Hypervolume Convergence')
+        axes[0, 1].set_title('Convergência Hypervolume')
         axes[0, 1].grid(True, alpha=0.3)
         
         # Number of Solutions
@@ -316,8 +316,8 @@ class EVRPMetrics(ParetoMetrics):
         axes[1, 0].plot(iterations, convergence_data['num_feasible'], 
                        'orange', linewidth=2, marker='v', markersize=4, label='Feasible')
         axes[1, 0].set_xlabel("Iteração")
-        axes[1, 0].set_ylabel('Number of Solutions')
-        axes[1, 0].set_title('Solution Count Evolution')
+        axes[1, 0].set_ylabel('Número de Soluções')
+        axes[1, 0].set_title('Evolução do número de soluções')
         axes[1, 0].legend()
         axes[1, 0].grid(True, alpha=0.3)
         
@@ -338,8 +338,8 @@ class EVRPMetrics(ParetoMetrics):
         ax_combined.plot(iterations, hv_norm, 'r-', linewidth=2, 
                        marker='s', markersize=4, label='HV (norm)')
         ax_combined.set_xlabel("Iteração")
-        ax_combined.set_ylabel('Normalized Metric Value')
-        ax_combined.set_title('Normalized Metrics Comparison')
+        ax_combined.set_ylabel('Valor Normalizado da Métrica')
+        ax_combined.set_title('Comparação das Métricas Normalizadas')
         ax_combined.legend()
         ax_combined.grid(True, alpha=0.3)
         
