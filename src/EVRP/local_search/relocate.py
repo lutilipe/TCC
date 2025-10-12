@@ -95,7 +95,7 @@ class Relocate:
                 
                 new_route.evaluate(self.instance)
                 
-                if new_route.is_feasible and self._is_better_route(new_route, best_route):
+                if self._is_better_route(new_route, best_route):
                     best_route = new_route
                     route.nodes = best_route.nodes
                     route.charging_decisions = best_route.charging_decisions
@@ -135,7 +135,7 @@ class Relocate:
         
         new_route.evaluate(self.instance)
         
-        if new_route.is_feasible and self._is_better_route(new_route, route):
+        if self._is_better_route(new_route, route):
             route.nodes = new_route.nodes
             route.charging_decisions = new_route.charging_decisions
             route.evaluate(self.instance)
@@ -170,8 +170,7 @@ class Relocate:
                 new_source.evaluate(self.instance)
                 new_target.evaluate(self.instance)
                 
-                if (new_source.is_feasible and new_target.is_feasible and
-                    self._is_better_solution(new_source, new_target, best_source, best_target)):
+                if self._is_better_solution(new_source, new_target, best_source, best_target):
                     best_source = new_source
                     best_target = new_target
                     source_route.nodes = best_source.nodes
@@ -210,8 +209,7 @@ class Relocate:
         new_source.evaluate(self.instance)
         new_target.evaluate(self.instance)
         
-        if (new_source.is_feasible and new_target.is_feasible and
-            self._is_better_solution(new_source, new_target, source_route, target_route)):
+        if self._is_better_solution(new_source, new_target, source_route, target_route):
             source_route.nodes = new_source.nodes
             source_route.charging_decisions = new_source.charging_decisions
             source_route.evaluate(self.instance)
@@ -318,47 +316,39 @@ class Relocate:
     def _is_better_route(self, route1: Route, route2: Route) -> bool:
         """
         Check if route1 is better than route2.
-        A route is better if it's feasible and has lower total distance or cost.
+        Uses three-objective comparison: distance, cost, penalties.
         """
         if not self.select_best:
             return True
 
-        if not route1.is_feasible:
-            return False
-        
-        if not route2.is_feasible:
-            return True
-        
+        # Use three-objective comparison: [distance, cost, penalties]
         return route1.dominates(route2)
     
     def _is_better_solution(self, new_source: Route, new_target: Route,
                            current_source: Route, current_target: Route) -> bool:
         """
         Check if the new route pair is better than the current route pair.
-        
-        A solution is better if:
-        1. Both routes are feasible
-        2. The total distance or cost is reduced
+        Uses three-objective comparison: distance, cost, penalties.
         """
         if not self.select_best:
             return True
 
-        if not new_source.is_feasible or not new_target.is_feasible:
-            return False
-        
-        if not current_source.is_feasible or not current_target.is_feasible:
-            return True
-        
+        # Calculate combined objectives for the route pair
         new_total_distance = new_source.total_distance + new_target.total_distance
         new_total_cost = new_source.total_cost + new_target.total_cost
+        new_total_penalties = new_source.total_penalties + new_target.total_penalties
         
         current_total_distance = current_source.total_distance + current_target.total_distance
         current_total_cost = current_source.total_cost + current_target.total_cost
+        current_total_penalties = current_source.total_penalties + current_target.total_penalties
         
+        # Three-objective comparison: [distance, cost, penalties]
         if (new_total_distance <= current_total_distance and
-            new_total_cost <= current_total_cost):
+            new_total_cost <= current_total_cost and
+            new_total_penalties <= current_total_penalties):
             if (new_total_distance < current_total_distance or
-                new_total_cost < current_total_cost):
+                new_total_cost < current_total_cost or
+                new_total_penalties < current_total_penalties):
                 return True
         
         return False

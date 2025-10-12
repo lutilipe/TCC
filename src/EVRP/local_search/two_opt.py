@@ -98,19 +98,14 @@ class TwoOpt:
             return True
 
         return False
-    
+
     def _is_better_route(self, route1: Route, route2: Route) -> bool:
         """
         Check if route1 is better than route2.
-        A route is better if it's feasible and has lower total distance or cost.
+        Uses three-objective comparison: distance, cost, penalties.
         """
         if not self.select_best:
             return True
 
-        if not route1.is_feasible:
-            return False
-        
-        if not route2.is_feasible:
-            return True
-        
+        # Use three-objective comparison: [distance, cost, penalties]
         return route1.dominates(route2)

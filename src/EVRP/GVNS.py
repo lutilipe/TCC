@@ -72,11 +72,11 @@ class GVNS:
     def is_non_dominated(self, solution: Solution, archive: List[Solution]) -> bool:
         """
         Verifica se uma solução é não-dominada em relação ao arquivo
+        Now considers penalized costs for infeasible solutions
         """
-        # Uma solução factível só pode ser dominada por outras soluções factíveis
         for archived_sol in archive:
-            # Se a solução arquivada é factível e domina a solução atual
-            if archived_sol.is_feasible and archived_sol.dominates(solution):
+            # Use penalized costs for comparison
+            if archived_sol.dominates(solution):
                 return False
         return True
 
@@ -84,27 +84,26 @@ class GVNS:
     def get_solution_hash(self, solution: Solution) -> tuple:
         """
         Retorna uma tupla hash da solução baseada nos objetivos
-        Pode ser expandido para incluir mais detalhes se necessário
+        Now uses three objectives: distance, cost, penalties
         """
-        return (solution.total_distance, solution.total_cost)
+        return (solution.total_distance, solution.total_cost, solution.total_penalties)
 
     def update_archive(self, archive: List[Solution], new_solutions: List[Solution]) -> Tuple[List[Solution], bool]:
         """
         Versão mais eficiente usando hash para detectar duplicatas.
         Retorna (novo_arquivo, changed) onde changed indica se houve mudança.
         """
-        # Cria set com hash das soluções existentes
-        existing_hashes = {self.get_solution_hash(sol) for sol in archive if sol.is_feasible}
-        old_hashes = {self.get_solution_hash(sol) for sol in archive if sol.is_feasible}
+        # Cria set com hash das soluções existentes (now includes infeasible solutions)
+        existing_hashes = {self.get_solution_hash(sol) for sol in archive}
+        old_hashes = {self.get_solution_hash(sol) for sol in archive}
         
-        # Filtra novas soluções
+        # Filtra novas soluções (now includes infeasible solutions)
         truly_new_solutions = []
         for new_sol in new_solutions:
-            if new_sol.is_feasible:
-                new_hash = self.get_solution_hash(new_sol)
-                if new_hash not in existing_hashes:
-                    truly_new_solutions.append(new_sol)
-                    existing_hashes.add(new_hash)
+            new_hash = self.get_solution_hash(new_sol)
+            if new_hash not in existing_hashes:
+                truly_new_solutions.append(new_sol)
+                existing_hashes.add(new_hash)
         
         # Adiciona novas soluções
         archive.extend(truly_new_solutions)
@@ -114,9 +113,6 @@ class GVNS:
         processed_hashes = set()
         
         for sol in archive:
-            if not sol.is_feasible:
-                continue
-                
             sol_hash = self.get_solution_hash(sol)
             
             # Evita processar soluções duplicadas
@@ -130,11 +126,11 @@ class GVNS:
         
         # Apply size limit if necessary
         if len(non_dominated) > self.na:
-            non_dominated.sort(key=lambda x: (x.total_distance, x.total_cost))
+            non_dominated.sort(key=lambda x: (x.total_distance, x.total_cost, x.total_penalties))
             non_dominated = non_dominated[:self.na]
 
         # Detecta mudança
-        new_hashes = {self.get_solution_hash(sol) for sol in non_dominated if sol.is_feasible}
+        new_hashes = {self.get_solution_hash(sol) for sol in non_dominated}
         changed = new_hashes != old_hashes
 
         print(changed)
@@ -221,8 +217,8 @@ class GVNS:
             self.evaluation_count += 1
             candidate = self._improve_solution(candidate, iterate)
             candidate.evaluate()
-            if candidate.is_feasible:
-                solutions.append(candidate)
+            # Now accept both feasible and infeasible solutions
+            solutions.append(candidate)
 
         return solutions
     
@@ -234,8 +230,8 @@ class GVNS:
             new_solution = method.perturbation(perturbed_sol)
             new_solution.evaluate()
             self.evaluation_count += 1
-            if new_solution.is_feasible:
-                perturbed_sol = copy.deepcopy(new_solution)
+            # Now accept both feasible and infeasible solutions
+            perturbed_sol = copy.deepcopy(new_solution)
         
         return perturbed_sol
     
@@ -258,10 +254,9 @@ class GVNS:
         for i, solution in enumerate(initial_population):
             print(f"Processando solução {i+1}/{len(initial_population)}")
             
-            # Só processa soluções factíveis
+            # Now process both feasible and infeasible solutions
             if not solution.is_feasible:
-                print(f"  Solução {i+1} não é factível, pulando...")
-                continue
+                print(f"  Solução {i+1} não é factível, mas será processada com penalidades...")
             
             # Passo 9: Aplica busca local NS vezes
             local_solutions = self.local_search(solution, False)
@@ -281,10 +276,10 @@ class GVNS:
         # Track initial metrics
         self._track_metrics(archive, 0)
         
-        # Verifica se o arquivo inicial tem soluções factíveis
+        # Verifica se o arquivo inicial tem soluções
         if len(archive) == 0:
-            print("❌ Nenhuma solução factível encontrada na população inicial!")
-            print("Verifique se as soluções iniciais são factíveis.")
+            print("❌ Nenhuma solução encontrada na população inicial!")
+            print("Verifique se as soluções iniciais foram geradas corretamente.")
             return []
         
         # Passo 12-19: Loop principal do GVNS
@@ -299,13 +294,12 @@ class GVNS:
                 break
             
             # Passo 13: Escolhe solução aleatória do arquivo A
-            # Filtra apenas soluções factíveis para escolha
-            feasible_solutions = [sol for sol in archive if sol.is_feasible]
-            if not feasible_solutions:
-                print("  ❌ Nenhuma solução factível no arquivo, parando algoritmo")
+            # Now considers both feasible and infeasible solutions
+            if not archive:
+                print("  ❌ Nenhuma solução no arquivo, parando algoritmo")
                 break
                 
-            x = random.choice(feasible_solutions)
+            x = random.choice(archive)
             
             # Passo 14: Loop de busca local
             ls_iter = 0

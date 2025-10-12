@@ -47,7 +47,7 @@ def process_single_instance(instance_file):
         ns=5,           # Número de soluções por busca local
         na=50,          # Tamanho máximo do arquivo A
         ls_max_iter=5, # Máximo de tentativas de busca local
-        max_evaluations=1000,  # Máximo de avaliações,
+        max_evaluations=280,  # Máximo de avaliações,
         local_search=[
             TwoOpt(instance),
             Relocate(instance, is_intra_route=True),
@@ -82,6 +82,7 @@ def process_single_instance(instance_file):
         print(f"  Spread Measure (Δ): {final_metrics['spread_measure']:.4f}")
         print(f"  Hypervolume (HV): {final_metrics['hypervolume']:.4f}")
         print(f"  Soluções factíveis: {final_metrics['num_feasible']}/{final_metrics['num_solutions']}")
+        print(f"  Soluções inviáveis: {final_metrics['num_solutions'] - final_metrics['num_feasible']}/{final_metrics['num_solutions']}")
         print(f"  Ponto Utopiano: {final_metrics['utopian_point']}")
         print(f"  Ponto Nadir: {final_metrics['nadir_point']}")
         
@@ -149,22 +150,28 @@ def process_single_instance(instance_file):
     if final_solutions:
         print(f"Soluções não-dominadas encontradas: {len(final_solutions)}")
         
-        # Ordena soluções por qualidade
-        final_solutions.sort(key=lambda x: (x.total_cost, x.total_distance))
+        # Ordena soluções por qualidade (using penalized cost)
+        final_solutions.sort(key=lambda x: (x.total_distance, x.total_cost, x.total_penalties))
         
         print("\nTop melhores soluções:")
-        print("Rank | Distância | Veículos | Custo   | Factível")
-        print("-" * 50)
+        print("Rank | Distância | Veículos | Custo   | Penaliz.| Factível")
+        print("-" * 60)
         
         for i, sol in enumerate(final_solutions):
-            print(f"{i+1:4d} | {sol.total_distance:9.2f} | {sol.num_vehicles_used:8d} | {sol.total_cost:6.2f} | {'Sim' if sol.is_feasible else 'Não'}")
+            cost_str = f"{sol.total_cost:6.2f}"
+            penalty_str = f"{sol.total_penalties:7.2f}" if not sol.is_feasible else "    0.00"
+            print(f"{i+1:4d} | {sol.total_distance:9.2f} | {sol.num_vehicles_used:8d} | {cost_str} | {penalty_str} | {'Sim' if sol.is_feasible else 'Não'}")
         
         best_solution = final_solutions[0]
         print(f"\nMelhor solução encontrada:")
         print(f"  Distância total: {best_solution.total_distance:.2f}")
         print(f"  Veículos usados: {best_solution.num_vehicles_used}")
         print(f"  Custo total: {best_solution.total_cost:.2f}")
+        print(f"  Penalidades: {best_solution.total_penalties:.2f}")
         print(f"  Solução factível: {'Sim' if best_solution.is_feasible else 'Não'}")
+        if not best_solution.is_feasible:
+            print(f"  Violações: {best_solution.get_total_violations()}")
+            print(f"  Detalhes: {best_solution.violations}")
         
         # Plota todas as soluções
         print(f"\nGerando visualizações para todas as soluções...")
@@ -192,8 +199,12 @@ def process_single_instance(instance_file):
                     f.write(f"  Distância total: {sol.total_distance:.2f}\n")
                     f.write(f"  Veículos usados: {sol.num_vehicles_used}\n")
                     f.write(f"  Custo total: {sol.total_cost:.2f}\n")
+                    f.write(f"  Penalidade: {sol.total_penalties:.2f}\n")
                     f.write(f"  Solução factível: {'Sim' if sol.is_feasible else 'Não'}\n")
                     f.write(f"  Número de rotas: {len(sol.routes)}\n")
+                    if not sol.is_feasible:
+                        f.write(f"  Violações: {sol.get_total_violations()}\n")
+                        f.write(f"  Detalhes das violações: {sol.violations}\n")
                     f.write("\n")
             
             print("Soluções salvas em 'gvns_solutions.txt'")
