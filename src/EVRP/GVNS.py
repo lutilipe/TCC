@@ -94,6 +94,7 @@ class GVNS:
         Retorna (novo_arquivo, changed) onde changed indica se houve mudança.
         """
         # Cria set com hash das soluções existentes (now includes infeasible solutions)
+        new_solutions = [solution for solution in new_solutions if solution.is_feasible]
         existing_hashes = {self.get_solution_hash(sol) for sol in archive}
         old_hashes = {self.get_solution_hash(sol) for sol in archive}
         

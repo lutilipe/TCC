@@ -35,7 +35,6 @@ def process_single_instance(instance_file):
         while not solution.is_feasible:
             solution = constructiveHeuristic.build_initial_solution()
         initial_solutions.append(solution)
-
         if len(initial_solutions) % 10 == 0:
             print(f"  {len(initial_solutions)} soluções criadas...")
     
@@ -47,7 +46,7 @@ def process_single_instance(instance_file):
         ns=5,           # Número de soluções por busca local
         na=50,          # Tamanho máximo do arquivo A
         ls_max_iter=5, # Máximo de tentativas de busca local
-        max_evaluations=280,  # Máximo de avaliações,
+        max_evaluations=3000,  # Máximo de avaliações,
         local_search=[
             TwoOpt(instance),
             Relocate(instance, is_intra_route=True),
@@ -73,6 +72,9 @@ def process_single_instance(instance_file):
     print("="*70)
     
     metrics = EVRPMetrics()
+
+    instance_name = os.path.basename(instance_file).replace('.txt', '')
+    instance_output_dir = f"output/{instance_name}"
     
     # Analisa soluções finais
     if final_solutions and len(final_solutions) > 1:
@@ -88,9 +90,6 @@ def process_single_instance(instance_file):
         
         # Plota fronteira Pareto
         print(f"\nGerando visualização da fronteira Pareto...")
-
-        instance_name = os.path.basename(instance_file).replace('.txt', '')
-        instance_output_dir = f"output/{instance_name}"
 
         if os.path.exists(instance_output_dir):
             import shutil

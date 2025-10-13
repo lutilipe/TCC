@@ -49,6 +49,23 @@ class ConstructiveHeuristic:
             station_distances.sort(key=lambda x: x[0])
             self.closest_stations_cache[node_id] = [station for _, station in station_distances]
     
+    def _calculate_arrival_and_service_time(self, from_id: int, to_id: int, 
+                                           current_time: float) -> Tuple[float, float]:
+        """
+        Calculate arrival time and actual service start time considering time windows.
+        Returns: (arrival_time, service_start_time)
+        """
+        travel_time = self.instance.time_matrix[from_id][to_id]
+        arrival_time = current_time + travel_time
+        
+        if to_id in self.customers:
+            customer = self.customers[to_id]
+            service_start_time = max(arrival_time, customer.ready_time)
+        else:
+            service_start_time = arrival_time
+            
+        return arrival_time, service_start_time
+    
     def _can_reach_directly(self, from_id: int, to_id: int, current_battery: float, 
                            current_load: float, current_time: float) -> bool:
         """Check if we can reach destination directly without violating any constraint"""
@@ -57,11 +74,27 @@ class ConstructiveHeuristic:
         service_time = 0
         
         if to_id in self.customers:
-            additional_demand = self.customers[to_id].demand
-            service_time = self.customers[to_id].service_time
+            customer = self.customers[to_id]
+            additional_demand = customer.demand
+            service_time = customer.service_time
             
             if current_load + additional_demand > self.instance.vehicle.capacity:
                 return False
+            
+            # Check time window constraint
+            arrival_time, service_start_time = self._calculate_arrival_and_service_time(
+                from_id, to_id, current_time
+            )
+            
+            # Cannot arrive after due_date
+            if arrival_time > customer.due_date:
+                return False
+            
+            # Update time to include waiting and service
+            new_time = service_start_time + service_time
+        else:
+            travel_time = self.instance.time_matrix[from_id][to_id]
+            new_time = current_time + travel_time
         
         # Check battery constraint
         distance = self.instance.distance_matrix[from_id][to_id]
@@ -69,10 +102,7 @@ class ConstructiveHeuristic:
         if current_battery < energy_needed:
             return False
             
-        # Check time constraint
-        travel_time = self.instance.time_matrix[from_id][to_id]
-        new_time = current_time + travel_time + service_time
-        
+        # Check max route duration
         if new_time > self.instance.max_route_duration:
             return False
             
@@ -232,7 +262,7 @@ class ConstructiveHeuristic:
         return best_option
     
     def _get_k_closest_feasible_customers(self, current_pos: int, visited: set, route: Route) -> List[Customer]:
-        """Get up to k closest unvisited customers that are reachable according to capacity, autonomy and time"""
+        """Get up to k closest unvisited customers that are reachable according to capacity, autonomy, time windows and time"""
         feasible_customers = []
         
         if current_pos not in self.closest_customers_cache:
@@ -250,11 +280,15 @@ class ConstructiveHeuristic:
             # Calculate state after visiting customer
             distance_to_customer = self.instance.distance_matrix[current_pos][customer.id]
             energy_consumed = distance_to_customer * self.instance.vehicle.consumption_rate
-            travel_time = self.instance.time_matrix[current_pos][customer.id]
+            
+            # Calculate time considering time windows
+            arrival_time, service_start_time = self._calculate_arrival_and_service_time(
+                current_pos, customer.id, route.current_time
+            )
             
             battery_after_customer = route.current_battery - energy_consumed
             load_after_customer = route.current_load + customer.demand
-            time_after_customer = route.current_time + travel_time + customer.service_time
+            time_after_customer = service_start_time + customer.service_time
             
             # Check if we can reach any depot directly or via station after visiting customer
             can_reach_depot = (
@@ -280,7 +314,7 @@ class ConstructiveHeuristic:
         return feasible_customers
     
     def build_initial_solution(self) -> Solution:
-        """k-PseudoGreedy Algorithm with guaranteed feasibility"""
+        """k-PseudoGreedy Algorithm with guaranteed feasibility and time windows"""
         self._precompute_closest_lists()
         
         solution = Solution(self.instance)
@@ -330,12 +364,16 @@ class ConstructiveHeuristic:
                 # Add customer j to route and update route state
                 distance_to_customer = self.instance.distance_matrix[i][j.id]
                 energy_consumed = distance_to_customer * self.instance.vehicle.consumption_rate
-                travel_time = self.instance.time_matrix[i][j.id]
+                
+                # Calculate time considering time windows
+                arrival_time, service_start_time = self._calculate_arrival_and_service_time(
+                    i, j.id, route.current_time
+                )
                 
                 route.nodes.append(j)
                 route.current_battery -= energy_consumed
                 route.current_load += j.demand
-                route.current_time += travel_time + j.service_time
+                route.current_time = service_start_time + j.service_time  # Include waiting time if early
                 visited_customers.add(j)
                 i = j.id  # set current position to j
                 

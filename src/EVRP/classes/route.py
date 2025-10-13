@@ -67,8 +67,7 @@ class Route:
                 battery_deficit = energy_consumed - current_battery
                 self.violations['battery_violations'] += 1
                 self.total_penalties += battery_deficit * self.penalty_weight
-                # Continue execution but with penalty
-                current_battery = 0  # Assume we continue with empty battery
+                current_battery = 0
             
             current_battery -= energy_consumed
             current_time += travel_time
@@ -77,20 +76,19 @@ class Route:
             if node.type == NodeType.CUSTOMER:
                 current_load += node.demand
                 
-                """ customer_node = instance.get_node_by_id(node_id)
-                if hasattr(customer_node, 'ready_time') and hasattr(customer_node, 'due_date'):
-                    if current_time < customer_node.ready_time:
-                        current_time = customer_node.ready_time
+                if hasattr(node, 'ready_time') and hasattr(node, 'due_date'):
+                    if current_time < node.ready_time:
+                        current_time = node.ready_time
                     
                     # Time window violation - now with penalty
-                    if current_time > customer_node.due_date:
+                    if current_time > node.due_date:
                         self.is_feasible = False
-                        time_excess = current_time - customer_node.due_date
+                        time_excess = current_time - node.due_date
                         self.violations['time_window_violations'] += 1
                         self.total_penalties += time_excess * self.penalty_weight
                         # Continue execution
                 
-                current_time += node.service_time """
+                current_time += node.service_time
                 
                 # Capacity violation - now with penalty
                 if current_load > instance.vehicle.capacity:
