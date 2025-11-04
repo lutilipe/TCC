@@ -80,13 +80,11 @@ class Route:
                     if current_time < node.ready_time:
                         current_time = node.ready_time
                     
-                    # Time window violation - now with penalty
                     if current_time > node.due_date:
                         self.is_feasible = False
                         time_excess = current_time - node.due_date
                         self.violations['time_window_violations'] += 1
                         self.total_penalties += time_excess * self.penalty_weight
-                        # Continue execution
                 
                 current_time += node.service_time
                 

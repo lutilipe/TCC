@@ -46,7 +46,7 @@ def process_single_instance(instance_file):
         ns=5,           # Número de soluções por busca local
         na=50,          # Tamanho máximo do arquivo A
         ls_max_iter=5, # Máximo de tentativas de busca local
-        max_evaluations=3000,  # Máximo de avaliações,
+        max_evaluations=1500,  # Máximo de avaliações,
         local_search=[
             TwoOpt(instance),
             Relocate(instance, is_intra_route=True),
