@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import json
 import matplotlib.pyplot as plt
 from EVRP import GVNS
@@ -46,7 +47,7 @@ def process_single_instance(instance_file):
         ns=5,           # Número de soluções por busca local
         na=50,          # Tamanho máximo do arquivo A
         ls_max_iter=5, # Máximo de tentativas de busca local
-        max_evaluations=1500,  # Máximo de avaliações,
+        max_evaluations=3000,  # Máximo de avaliações,
         local_search=[
             TwoOpt(instance),
             Relocate(instance, is_intra_route=True),
@@ -81,7 +82,7 @@ def process_single_instance(instance_file):
         final_metrics = metrics.evaluate_solution_set(final_solutions)
         
         print(f"📊 Métricas de Qualidade Pareto:")
-        print(f"  Spread Measure (Δ): {final_metrics['spread_measure']:.4f}")
+        print(f"  Medida de Dispersão (Δ): {final_metrics['spread_measure']:.4f}")
         print(f"  Hypervolume (HV): {final_metrics['hypervolume']:.4f}")
         print(f"  Soluções factíveis: {final_metrics['num_feasible']}/{final_metrics['num_solutions']}")
         print(f"  Soluções inviáveis: {final_metrics['num_solutions'] - final_metrics['num_feasible']}/{final_metrics['num_solutions']}")
@@ -112,17 +113,40 @@ def process_single_instance(instance_file):
         
         # Plota convergência se disponível
         if gvns.track_metrics:
-            print(f"\nGerando gráfico de convergência...")
+            print(f"\nGerando gráficos de convergência...")
             try:
-                convergence_fig = gvns.plot_convergence(f"EVRP GVNS Convergence - {instance_name}")
-                if convergence_fig:
-                    convergence_file = f"{instance_output_dir}/convergence.png"
-                    convergence_fig.savefig(convergence_file, dpi=300, bbox_inches='tight')
-                    print(f"  Gráfico de convergência salvo em: {convergence_file}")
-                    plt.close(convergence_fig)
-                    
+                convergence_data = gvns.get_convergence_data()
+                if convergence_data:
+                    # Spread
+                    fig_spread = metrics.plot_convergence_spread(convergence_data, f"Convergência Δ - {instance_name}")
+                    file_spread = f"{instance_output_dir}/convergence_spread.png"
+                    fig_spread.savefig(file_spread, dpi=300, bbox_inches='tight')
+                    print(f"  Gráfico salvo: {file_spread}")
+                    plt.close(fig_spread)
+
+                    # Hypervolume
+                    fig_hv = metrics.plot_convergence_hv(convergence_data, f"Convergência HV - {instance_name}")
+                    file_hv = f"{instance_output_dir}/convergence_hv.png"
+                    fig_hv.savefig(file_hv, dpi=300, bbox_inches='tight')
+                    print(f"  Gráfico salvo: {file_hv}")
+                    plt.close(fig_hv)
+
+                    # Solution counts
+                    fig_counts = metrics.plot_convergence_solution_counts(convergence_data, f"Evolução de Soluções - {instance_name}")
+                    file_counts = f"{instance_output_dir}/convergence_solutions.png"
+                    fig_counts.savefig(file_counts, dpi=300, bbox_inches='tight')
+                    print(f"  Gráfico salvo: {file_counts}")
+                    plt.close(fig_counts)
+
+                    # Combined normalized
+                    fig_combined = metrics.plot_convergence_combined_normalized(convergence_data, f"Métricas Normalizadas - {instance_name}")
+                    file_combined = f"{instance_output_dir}/convergence_combined.png"
+                    fig_combined.savefig(file_combined, dpi=300, bbox_inches='tight')
+                    print(f"  Gráfico salvo: {file_combined}")
+                    plt.close(fig_combined)
+            
             except Exception as e:
-                print(f"  Erro ao gerar gráfico de convergência: {e}")
+                print(f"  Erro ao gerar gráficos de convergência: {e}")
         
         # Salva métricas em arquivo JSON
         print(f"\nSalvando métricas em arquivo...")
@@ -132,6 +156,19 @@ def process_single_instance(instance_file):
             for key, value in metrics_data.items():
                 if hasattr(value, 'tolist'):
                     metrics_data[key] = value.tolist()
+            # Estatísticas agregadas entre as soluções finais
+            distances_json = np.array([sol.total_distance for sol in final_solutions], dtype=float)
+            costs_json = np.array([sol.total_cost for sol in final_solutions], dtype=float)
+            avg_distance_json = float(np.mean(distances_json)) if distances_json.size > 0 else 0.0
+            std_distance_json = float(np.std(distances_json, ddof=0)) if distances_json.size > 1 else 0.0
+            avg_cost_json = float(np.mean(costs_json)) if costs_json.size > 0 else 0.0
+            std_cost_json = float(np.std(costs_json, ddof=0)) if costs_json.size > 1 else 0.0
+            metrics_data.update({
+                'avg_distance': avg_distance_json,
+                'std_distance': std_distance_json,
+                'avg_cost': avg_cost_json,
+                'std_cost': std_cost_json,
+            })
             
             metrics_file = f"{instance_output_dir}/metrics.json"
             with open(metrics_file, 'w') as f:
@@ -152,6 +189,14 @@ def process_single_instance(instance_file):
         # Ordena soluções por qualidade (using penalized cost)
         final_solutions.sort(key=lambda x: (x.total_distance, x.total_cost, x.total_penalties))
         
+        # Estatísticas agregadas entre as soluções finais
+        distances = np.array([sol.total_distance for sol in final_solutions], dtype=float)
+        costs = np.array([sol.total_cost for sol in final_solutions], dtype=float)
+        avg_distance = float(np.mean(distances)) if distances.size > 0 else 0.0
+        std_distance = float(np.std(distances, ddof=0)) if distances.size > 1 else 0.0
+        avg_cost = float(np.mean(costs)) if costs.size > 0 else 0.0
+        std_cost = float(np.std(costs, ddof=0)) if costs.size > 1 else 0.0
+
         print("\nTop melhores soluções:")
         print("Rank | Distância | Veículos | Custo   | Penaliz.| Factível")
         print("-" * 60)
@@ -160,6 +205,13 @@ def process_single_instance(instance_file):
             cost_str = f"{sol.total_cost:6.2f}"
             penalty_str = f"{sol.total_penalties:7.2f}" if not sol.is_feasible else "    0.00"
             print(f"{i+1:4d} | {sol.total_distance:9.2f} | {sol.num_vehicles_used:8d} | {cost_str} | {penalty_str} | {'Sim' if sol.is_feasible else 'Não'}")
+        
+        # Exibe estatísticas agregadas
+        print("\nEstatísticas agregadas entre soluções:")
+        print(f"  Distância média: {avg_distance:.2f}")
+        print(f"  Desvio padrão da distância: {std_distance:.2f}")
+        print(f"  Custo médio: {avg_cost:.2f}")
+        print(f"  Desvio padrão do custo: {std_cost:.2f}")
         
         best_solution = final_solutions[0]
         print(f"\nMelhor solução encontrada:")
@@ -192,6 +244,12 @@ def process_single_instance(instance_file):
             with open(solutions_file, "w") as f:
                 f.write("Soluções não-dominadas encontradas pelo GVNS\n")
                 f.write("="*50 + "\n\n")
+                f.write("Resumo estatístico das soluções\n")
+                f.write("-"*50 + "\n")
+                f.write(f"Distância média: {avg_distance:.2f}\n")
+                f.write(f"Desvio padrão da distância: {std_distance:.2f}\n")
+                f.write(f"Custo médio: {avg_cost:.2f}\n")
+                f.write(f"Desvio padrão do custo: {std_cost:.2f}\n\n")
                 
                 for i, sol in enumerate(final_solutions):
                     f.write(f"Solução {i+1}:\n")

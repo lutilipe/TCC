@@ -182,10 +182,10 @@ class ParetoMetrics:
         
         # Plot Spread Measure convergence
         ax2.plot(iterations, delta_values, 'r-', linewidth=2, marker='s', 
-                markersize=4, label='Spread Measure')
+                markersize=4, label='Medida de Dispersão')
         ax2.set_xlabel('Iteration')
-        ax2.set_ylabel('Spread Measure (Δ)')
-        ax2.set_title('Spread Measure Convergence')
+        ax2.set_ylabel('Medida de Dispersão (Δ)')
+        ax2.set_title('Convergência da Medida de Dispersão')
         ax2.grid(True, alpha=0.3)
         ax2.legend()
         
@@ -216,7 +216,7 @@ class ParetoMetrics:
         
         # Process spread measure data  
         delta_stats = self._calculate_statistics(delta_data, iterations)
-        self._plot_statistics(ax2, iterations, delta_stats, 'Spread Measure (Δ)', 'red')
+        self._plot_statistics(ax2, iterations, delta_stats, 'Medida de Dispersão (Δ)', 'red')
         
         plt.suptitle('Quality Metrics Evolution - Statistical Analysis', 
                      fontsize=14, fontweight='bold')
@@ -283,8 +283,8 @@ def test_metrics():
     hv = metrics.hypervolume(pareto_front, reference_point)
     
     print("Pareto Front Quality Metrics:")
-    print(f"Spread Measure (Δ): {spread:.4f}")
-    print(f"Hypervolume (HV): {hv:.4f}")
+    print(f"Medida de Dispersão (Δ): {spread:.4f}")
+    print(f"Hipervolume (HV): {hv:.4f}")
     print(f"Reference Point: {reference_point}")
     
     # Generate sample convergence data for plotting

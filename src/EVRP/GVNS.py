@@ -355,8 +355,8 @@ class GVNS:
             final_metrics = self.get_final_metrics()
             if final_metrics:
                 print(f"\n📊 Métricas Finais:")
-                print(f"  Spread Measure (Δ): {final_metrics['spread_measure']:.4f}")
-                print(f"  Hypervolume (HV): {final_metrics['hypervolume']:.4f}")
+                print(f"  Medida de Dispersão (Δ): {final_metrics['spread_measure']:.4f}")
+                print(f"  Hipervolume (HV): {final_metrics['hypervolume']:.4f}")
                 print(f"  Soluções factíveis: {final_metrics['num_feasible']}/{final_metrics['num_solutions']}")
         
         return archive

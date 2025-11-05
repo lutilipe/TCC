@@ -147,7 +147,7 @@ class EVRPMetrics(ParetoMetrics):
                 'num_feasible': len(feasible_solutions)
             }
         
-        # Convert to Pareto front
+        # Convert to objectives matrix for feasible solutions
         pareto_front = self.solutions_to_pareto_front(feasible_solutions)
         
         # Calculate reference points
@@ -157,12 +157,14 @@ class EVRPMetrics(ParetoMetrics):
         # Ensure nadir is strictly greater than utopian
         nadir = np.maximum(nadir, utopian * 1.1)
         
-        # Calculate metrics
+        # Calculate dispersion over all feasible solutions
         spread = self.spread_measure(pareto_front, utopian, nadir)
-        
-        # For hypervolume, use nadir as reference point
-        reference_point = nadir * 1.1  # Slightly worse than nadir
-        hv = self.hypervolume(pareto_front, reference_point)
+
+        # Calculate hypervolume using the mean objective vector, as requested
+        objectives_mean = np.mean(pareto_front, axis=0)
+        pareto_front_mean = np.array([objectives_mean])
+        reference_point = nadir * 1.1
+        hv = self.hypervolume(pareto_front_mean, reference_point)
         
         return {
             'spread_measure': spread,
@@ -233,7 +235,7 @@ class EVRPMetrics(ParetoMetrics):
         if show_metrics:
             metrics = self.evaluate_solution_set(solutions)
             metrics_text = f"""
-            Spread Measure (Δ): {metrics['spread_measure']:.4f}
+            Medida de Dispersão (Δ): {metrics['spread_measure']:.4f}
             Hypervolume (HV): {metrics['hypervolume']:.4f}
             Feasible Solutions: {metrics['num_feasible']}/{metrics['num_solutions']}
             """
@@ -289,59 +291,114 @@ class EVRPMetrics(ParetoMetrics):
         Returns:
             matplotlib Figure object
         """
+        # This method previously returned a combined figure.
+        # Kept for backward compatibility, but users are encouraged to use the
+        # dedicated plotting methods below to generate separate figures.
         fig, axes = plt.subplots(2, 2, figsize=(15, 10))
         fig.suptitle(title, fontsize=16, fontweight='bold')
-        
         iterations = convergence_data['iterations']
-        
+
         # Spread Measure
-        axes[0, 0].plot(iterations, convergence_data['spread_measure'], 
-                       'b-', linewidth=2, marker='o', markersize=4)
+        axes[0, 0].plot(iterations, convergence_data['spread_measure'],
+                        'b-', linewidth=2, marker='o', markersize=4)
         axes[0, 0].set_xlabel("Iteração")
-        axes[0, 0].set_ylabel('Spread Measure (Δ)')
-        axes[0, 0].set_title('Convergência Spread Measure')
+        axes[0, 0].set_ylabel('Medida de Dispersão (Δ)')
+        axes[0, 0].set_title('Convergência Medida de Dispersão')
         axes[0, 0].grid(True, alpha=0.3)
-        
+
         # Hypervolume
-        axes[0, 1].plot(iterations, convergence_data['hypervolume'], 
-                       'r-', linewidth=2, marker='s', markersize=4)
+        axes[0, 1].plot(iterations, convergence_data['hypervolume'],
+                        'r-', linewidth=2, marker='s', markersize=4)
         axes[0, 1].set_xlabel("Iteração")
-        axes[0, 1].set_ylabel('Hypervolume (HV)')
-        axes[0, 1].set_title('Convergência Hypervolume')
+        axes[0, 1].set_ylabel('Hipervolume (HV)')
+        axes[0, 1].set_title('Convergência Hipervolume')
         axes[0, 1].grid(True, alpha=0.3)
-        
+
         # Number of Solutions
-        axes[1, 0].plot(iterations, convergence_data['num_solutions'], 
-                       'g-', linewidth=2, marker='^', markersize=4, label='Total')
-        axes[1, 0].plot(iterations, convergence_data['num_feasible'], 
-                       'orange', linewidth=2, marker='v', markersize=4, label='Feasible')
+        axes[1, 0].plot(iterations, convergence_data['num_solutions'],
+                        'g-', linewidth=2, marker='^', markersize=4, label='Total')
+        axes[1, 0].plot(iterations, convergence_data['num_feasible'],
+                        'orange', linewidth=2, marker='v', markersize=4, label='Feasible')
         axes[1, 0].set_xlabel("Iteração")
         axes[1, 0].set_ylabel('Número de Soluções')
         axes[1, 0].set_title('Evolução do número de soluções')
         axes[1, 0].legend()
         axes[1, 0].grid(True, alpha=0.3)
-        
+
         # Combined metrics (normalized)
         ax_combined = axes[1, 1]
-        
-        # Normalize metrics to [0, 1] for comparison
         spread_norm = np.array(convergence_data['spread_measure'])
         hv_norm = np.array(convergence_data['hypervolume'])
-        
         if len(spread_norm) > 0 and np.max(spread_norm) > 0:
             spread_norm = spread_norm / np.max(spread_norm)
         if len(hv_norm) > 0 and np.max(hv_norm) > 0:
             hv_norm = hv_norm / np.max(hv_norm)
-        
-        ax_combined.plot(iterations, spread_norm, 'b-', linewidth=2, 
-                       marker='o', markersize=4, label='Spread (norm)')
-        ax_combined.plot(iterations, hv_norm, 'r-', linewidth=2, 
-                       marker='s', markersize=4, label='HV (norm)')
+        ax_combined.plot(iterations, spread_norm, 'b-', linewidth=2,
+                         marker='o', markersize=4, label='Spread (norm)')
+        ax_combined.plot(iterations, hv_norm, 'r-', linewidth=2,
+                         marker='s', markersize=4, label='HV (norm)')
         ax_combined.set_xlabel("Iteração")
         ax_combined.set_ylabel('Valor Normalizado da Métrica')
         ax_combined.set_title('Comparação das Métricas Normalizadas')
         ax_combined.legend()
         ax_combined.grid(True, alpha=0.3)
-        
+        plt.tight_layout()
+        return fig
+
+    def plot_convergence_spread(self, convergence_data: Dict[str, List[float]],
+                                title: str = "Convergência - Medida de Dispersão (Δ)") -> plt.Figure:
+        fig, ax = plt.subplots(1, 1, figsize=(8, 5))
+        iterations = convergence_data['iterations']
+        ax.plot(iterations, convergence_data['spread_measure'], 'b-', linewidth=2, marker='o', markersize=4)
+        ax.set_xlabel("Iteração")
+        ax.set_ylabel('Medida de Dispersão (Δ)')
+        ax.set_title(title)
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
+    def plot_convergence_hv(self, convergence_data: Dict[str, List[float]],
+                             title: str = "Convergência - Hipervolume (HV)") -> plt.Figure:
+        fig, ax = plt.subplots(1, 1, figsize=(8, 5))
+        iterations = convergence_data['iterations']
+        ax.plot(iterations, convergence_data['hypervolume'], 'r-', linewidth=2, marker='s', markersize=4)
+        ax.set_xlabel("Iteração")
+        ax.set_ylabel('Hipervolume (HV)')
+        ax.set_title(title)
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
+    def plot_convergence_solution_counts(self, convergence_data: Dict[str, List[float]],
+                                         title: str = "Evolução do Número de Soluções") -> plt.Figure:
+        fig, ax = plt.subplots(1, 1, figsize=(8, 5))
+        iterations = convergence_data['iterations']
+        ax.plot(iterations, convergence_data['num_solutions'], 'g-', linewidth=2, marker='^', markersize=4, label='Total')
+        ax.plot(iterations, convergence_data['num_feasible'], 'orange', linewidth=2, marker='v', markersize=4, label='Factíveis')
+        ax.set_xlabel("Iteração")
+        ax.set_ylabel('Número de Soluções')
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
+    def plot_convergence_combined_normalized(self, convergence_data: Dict[str, List[float]],
+                                             title: str = "Comparação de Métricas (Normalizadas)") -> plt.Figure:
+        fig, ax = plt.subplots(1, 1, figsize=(8, 5))
+        iterations = convergence_data['iterations']
+        spread_norm = np.array(convergence_data['spread_measure'])
+        hv_norm = np.array(convergence_data['hypervolume'])
+        if len(spread_norm) > 0 and np.max(spread_norm) > 0:
+            spread_norm = spread_norm / np.max(spread_norm)
+        if len(hv_norm) > 0 and np.max(hv_norm) > 0:
+            hv_norm = hv_norm / np.max(hv_norm)
+        ax.plot(iterations, spread_norm, 'b-', linewidth=2, marker='o', markersize=4, label='Spread (norm)')
+        ax.plot(iterations, hv_norm, 'r-', linewidth=2, marker='s', markersize=4, label='HV (norm)')
+        ax.set_xlabel("Iteração")
+        ax.set_ylabel('Valor Normalizado')
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
         plt.tight_layout()
         return fig
