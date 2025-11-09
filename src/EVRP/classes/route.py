@@ -50,7 +50,7 @@ class Route:
             self.is_feasible = False
             self.total_penalties += self.penalty_weight  # Depot structure violation
             return
-
+        
         start_depot_id = self.nodes[0].id
         prev_node_id = start_depot_id
         
@@ -126,6 +126,10 @@ class Route:
             duration_excess = current_time - instance.max_route_duration
             self.violations['duration_violations'] += 1
             self.total_penalties += duration_excess * self.penalty_weight
+
+        if self.total_cost == 0:
+            self.total_penalties += self.penalty_weight
+            self.is_feasible = False
     
     def dominates(self, new_route: "Route") -> bool:
         """
