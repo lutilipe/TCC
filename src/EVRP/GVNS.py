@@ -76,7 +76,7 @@ class GVNS:
         """
         for archived_sol in archive:
             # Use penalized costs for comparison
-            if archived_sol.dominates(solution):
+            if archived_sol.dominates(solution) or solution.total_penalties != 0:
                 return False
         return True
 

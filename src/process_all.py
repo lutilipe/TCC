@@ -76,7 +76,7 @@ def process_all_instances(max_workers=None):
     if total_skipped > 0:
         print(f"Instâncias puladas (já processadas): {total_skipped}")
     print(f"Instâncias a processar: {total_instances}")
-    
+    print(all_instances)
     # Se não houver instâncias para processar, retornar
     if total_instances == 0:
         print("\nTodas as instâncias já foram processadas!")
@@ -84,7 +84,7 @@ def process_all_instances(max_workers=None):
     
     # Determinar número de workers
     if max_workers is None:
-        max_workers = max(1, cpu_count() - 1)
+        max_workers = min(4, cpu_count() - 1)
     
     print(f"Usando {max_workers} processos paralelos")
     print("-" * 70)

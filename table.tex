@@ -1,0 +1,271 @@
+% ------------------------------------------------------------------------------
+% Resultados
+% ------------------------------------------------------------------------------
+
+% ------------------------------------------------------------------------------
+% Resultados
+% ------------------------------------------------------------------------------
+
+\chapter{Resultados}\label{chap:resultados}
+
+Nesta seção, são apresentados e discutidos os resultados obtidos a partir da aplicação da metodologia proposta sobre as instâncias selecionadas. A análise abrange a avaliação das fronteiras de Pareto resultantes após diversas execuções, bem como o estudo da convergência de indicadores de qualidade dessas fronteiras ao longo das iterações.  
+
+A \autoref{sec:exp-explicacao} descreve detalhadamente a configuração dos experimentos realizados, bem como  os resultados obtidos em cada grupo das instâncias consideradas. Por fim, a \autoref{sec:analise-resultados} discute e interpreta os resultados de forma comparativa e crítica.
+
+
+\section{Configuração dos Experimentos}\label{sec:exp-explicacao}
+% ------------------------------------------------------------------------------
+
+Esta seção apresenta a configuração e os procedimentos adotados nos experimentos computacionais, incluindo a definição dos grupos de teste (\autoref{sec:g1} e \autoref{sec:g2}), bem como a análise e a discussão dos resultados (\autoref{sec:analise-resultados}).
+
+As instâncias utilizadas neste trabalho foram modificadas, e, considerando-se que não foram identificados \textit{benchmarks} que contemplassem propostas multiobjetivas abrangendo simultaneamente todas as restrições descritas neste documento (restrições de tempo, múltiplos depósitos, restrições de carga e restrições de energia), optou-se por adotar uma estratégia de agrupamento das instâncias de teste. Assim, o Grupo I é composto por instâncias de menor porte, contendo 5, 10 e 15 clientes, enquanto o Grupo II reúne as instâncias de maior porte, com 100 clientes.
+
+Para as instâncias pertencentes ao Grupo I, os resultados obtidos por meio da metodologia proposta serão comparados àqueles gerados pelo solucionador \textit{Gurobi}, de modo a avaliar a eficácia da heurística na obtenção de soluções próximas do ótimo, ainda que em instâncias de menor dimensão. Por outro lado, as instâncias do Grupo II não apresentam resultados comparativos, uma vez que o \textit{Gurobi} não foi capaz de obter soluções viáveis em tempo computacionalmente aceitável.
+
+
+\subsection{Resultados do Grupo I}\label{sec:g1}
+
+A Tabela~\ref{tab:grupo1} apresenta os resultados obtidos pelo algoritmo MOILS para as instâncias do Grupo I, compostas por instâncias de menor porte (5, 10 e 15 clientes). Para cada instância, são apresentadas o número de soluções e as métricas médias de distância ($\overline{f_1}$), custo ($\overline{f_2}$), o desvio padrão ($\sigma$) para ambas, medida de dispersão média ($\overline{\Delta}$) e hipervolume médio ($\overline{HV}$). Por serem instâncias menores e terem um tempo de execução menor na meta-heurística, cada uma foi executada 30 vezes a fim de calcular as médias das funções objetivo e dos indicadores de qualidade.
+
+Adicionalmente, são incluídos os resultados médios das funções objetivo obtidos pelo solucionador \textit{Gurobi} para fins de comparação, permitindo avaliar a qualidade das soluções encontradas pela heurística proposta em relação ao ótimo.
+
+
+
+\begin{table}[htbp]
+    \centering
+    \caption{Resultados do Grupo I - Instâncias com 5, 10 e 15 clientes}
+    \label{tab:grupo1}
+    \small
+    \begin{tabularx}{\textwidth}{l>{\centering\arraybackslash}X*{6}{>{\centering\arraybackslash}X}|*{2}{>{\centering\arraybackslash}X}}
+    \toprule
+    & & \multicolumn{6}{c|}{\textbf{MOILS}} & \multicolumn{2}{c}{\textbf{\textit{Gurobi}}} \\
+    \cmidrule(lr){2-8}\cmidrule(lr){9-10}
+    \textbf{ID} & Nº Sol. & \textbf{$\overline{f_1}$} & \textbf{$\sigma_{f_1}$} & \textbf{$\overline{f_2}$} & \textbf{$\sigma_{f_2}$} & \textbf{$\overline{\Delta}$} & \textbf{$\overline{HV}$} & \textbf{$\overline{f_1}$} & \textbf{$\overline{f_2}$} \\
+    \midrule
+    \multicolumn{10}{l}{\textit{Instâncias com 5 clientes}} \\
+    \midrule
+    \texttt{c101C5} & 9 & 202.00 & 21.14 & 35.54 & 15.27 & 0.62 & 1627.01 & 201.00 & 35.36 \\
+    \texttt{c103C5} & 5 & 115.30 & 23.78 & 27.02 & 11.47 & 0.63 & 1138.11 & 114.72 & 26.88 \\
+    \texttt{c208C5} & 2 & 56.48 & 16.44 & 36.78 & 7.35 & 0.45 & 279.24 & 56.20 & 36.60 \\
+    \texttt{r105C5} & 2 & 94.59 & 2.49 & 41.90 & 5.99 & 0.66 & 181.53 & 94.12 & 41.69 \\
+    \texttt{r202C5} & 4 & 95.87 & 8.00 & 30.88 & 12.95 & 0.71 & 457.67 & 95.39 & 30.72 \\
+    \texttt{r203C5} & 2 & 92.75 & 14.02 & 36.28 & 11.60 & 0.56 & 404.79 & 92.28 & 36.10 \\
+    \texttt{rc105C5} & 6 & 155.35 & 24.46 & 23.21 & 14.64 & 0.76 & 1288.39 & 154.59 & 23.09 \\
+    \texttt{rc108C5} & 2 & 152.05 & 7.09 & 28.82 & 14.11 & 0.01 & 429.85 & 151.29 & 28.68 \\
+    \texttt{rc204C5} & 3 & 91.36 & 4.32 & 29.42 & 12.01 & 0.67 & 252.93 & 90.90 & 29.27 \\
+    \texttt{rc208C5} & 3 & 104.42 & 20.27 & 28.07 & 12.12 & 0.79 & 606.17 & 103.90 & 27.93 \\
+    \midrule
+    \multicolumn{10}{l}{\textit{Instâncias com 10 clientes}} \\
+    \midrule
+    \texttt{c104C10} & 4 & 304.82 & 39.54 & 46.66 & 6.69 & 0.59 & 1347.10 & 298.72 & 45.73 \\
+    \texttt{c202C10} & 5 & 288.39 & 26.31 & 51.59 & 5.01 & 0.62 & 877.91 & 282.62 & 50.56 \\
+    \texttt{c205C10} & 4 & 182.26 & 8.97 & 61.74 & 8.60 & 0.63 & 574.56 & 178.61 & 60.51 \\
+    \texttt{r102C10} & 3 & 227.15 & 4.31 & 56.14 & 2.67 & 0.75 & 395.75 & 222.61 & 55.02 \\
+    \texttt{r103C10} & 5 & 122.27 & 25.08 & 41.59 & 11.64 & 0.77 & 1576.13 & 119.82 & 40.76 \\
+    \texttt{r201C10} & 8 & 228.29 & 24.31 & 53.94 & 10.92 & 0.66 & 1411.19 & 223.72 & 52.86 \\
+    \texttt{r203C10} & 4 & 185.61 & 12.66 & 47.09 & 12.73 & 0.64 & 841.59 & 182.90 & 46.15 \\
+    \texttt{rc102C10} & 3 & 359.21 & 6.48 & 97.93 & 17.00 & 0.86 & 1935.90 & 352.03 & 96.97 \\
+    \texttt{rc108C10} & 4 & 272.91 & 18.05 & 59.09 & 7.00 & 1.04 & 709.76 & 267.45 & 57.91 \\
+    \texttt{rc201C10} & 5 & 316.13 & 31.38 & 68.90 & 6.21 & 0.77 & 802.29 & 309.81 & 67.52 \\
+    \texttt{rc205C10} & 2 & 317.30 & 28.37 & 48.72 & 7.15 & 0.33 & 801.42 & 311.95 & 47.75 \\
+    \midrule
+    \multicolumn{10}{l}{\textit{Instâncias com 15 clientes}} \\
+    \midrule
+    \texttt{c103C15} & 3 & 321.19 & 2.52 & 80.38 & 16.38 & 0.83 & 2144.78 & 305.13 & 76.36 \\
+    \texttt{c106C15} & 3 & 288.04 & 53.13 & 61.49 & 9.27 & 0.43 & 1828.79 & 273.64 & 58.42 \\
+    \texttt{c202C15} & 3 & 386.40 & 12.71 & 59.59 & 7.03 & 0.54 & 959.02 & 367.08 & 56.61 \\
+    \texttt{c208C15} & 2 & 343.76 & 1.92 & 55.96 & 6.25 & 0.78 & 871.11 & 326.57 & 53.16 \\
+    \texttt{r102C15} & 8 & 326.67 & 14.03 & 99.90 & 14.87 & 0.82 & 2487.92 & 310.33 & 94.91 \\
+    \texttt{r105C15} & 2 & 318.66 & 0.00 & 77.74 & 1.36 & 0.93 & 982.80 & 302.73 & 73.86 \\
+    \texttt{r202C15} & 3 & 289.46 & 13.29 & 58.62 & 4.23 & 0.42 & 515.97 & 275.99 & 55.69 \\
+    \texttt{r209C15} & 4 & 252.37 & 11.04 & 70.12 & 15.30 & 0.62 & 1401.42 & 239.75 & 66.61 \\
+    \texttt{rc103C15} & 3 & 307.68 & 14.17 & 58.41 & 4.41 & 0.69 & 669.59 & 292.30 & 55.49 \\
+    \texttt{rc108C15} & 4 & 406.14 & 32.94 & 62.22 & 9.70 & 0.75 & 1686.13 & 385.83 & 59.11 \\
+    \texttt{rc202C15} & 4 & 397.43 & 40.98 & 63.13 & 7.59 & 0.84 & 1752.21 & 377.56 & 59.97 \\
+    \texttt{rc204C15} & 11 & 261.74 & 26.50 & 58.04 & 9.72 & 0.84 & 2254.39 & 248.65 & 55.14 \\
+    \bottomrule
+    \end{tabularx}
+    \end{table}
+
+\subsection{Resultados do Grupo II}\label{sec:g2}
+
+A Tabela~\ref{tab:grupo2} apresenta os resultados obtidos pelo algoritmo MOILS para as instâncias do Grupo II, compostas por instâncias de maior porte com 100 clientes. Para cada instância, são apresentadas o número de soluções e as métricas de médias de distância ($\overline{f_1}$), custo ($\overline{f_2}$), o desvio padrão ($\sigma$) para ambas, medida de dispersão média ($\overline{\Delta}$) e hipervolume médio ($\overline{HV}$). Por serem instâncias maiores e terem um tempo de execução relativamente alto na meta-heurística, cada uma foi executada 5 vezes a fim de calcular as médias das funções objetivo e dos indicadores de qualidade. Executar as mesmas 30 vezes das instâncias menores se mostrou bem custoso computacionalmente. 
+
+Conforme mencionado na \autoref{sec:exp-explicacao}, para essas instâncias não foram obtidos resultados comparativos do solucionador \textit{Gurobi}, uma vez que este não foi capaz de encontrar soluções viáveis em tempo computacionalmente aceitável.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Resultados do Grupo II - Instâncias com 100 clientes}
+    \label{tab:grupo2}
+    \small
+    \begin{tabularx}{\textwidth}{l>{\centering\arraybackslash}X*{6}{>{\centering\arraybackslash}X}}
+    \toprule
+    \textbf{ID} & Nº Sol. & \textbf{$\overline{f_1}$} & \textbf{$\sigma_{f_1}$} & \textbf{$\overline{f_2}$} & \textbf{$\sigma_{f_2}$} & \textbf{$\overline{\Delta}$} & \textbf{$\overline{HV}$} \\
+    \midrule
+    \multicolumn{8}{l}{\textit{Instâncias tipo C}} \\
+    \midrule
+    \texttt{c101\_21} & 24 & 2223.96 & 251.08 & 629.80 & 76.49 & 0.92 & 249956.90 \\
+    \texttt{c102\_21} & 13 & 2070.49 & 266.16 & 585.94 & 55.81 & 0.98 & 234780.01 \\
+    \texttt{c103\_21} & 16 & 1577.52 & 105.10 & 427.03 & 45.28 & 0.91 & 48295.58 \\
+    \texttt{c104\_21} & 11 & 1386.02 & 140.50 & 455.69 & 59.80 & 1.07 & 96936.95 \\
+    \texttt{c105\_21} & 13 & 1901.97 & 157.59 & 495.77 & 54.46 & 0.73 & 63440.49 \\
+    \texttt{c106\_21} & 8 & 1799.91 & 27.58 & 426.27 & 15.26 & 0.83 & 24825.50 \\
+    \texttt{c107\_21} & 7 & 1637.81 & 64.28 & 400.89 & 71.94 & 0.94 & 54708.62 \\
+    \texttt{c108\_21} & 8 & 1635.52 & 51.71 & 423.10 & 62.80 & 0.84 & 31718.21 \\
+    \texttt{c109\_21} & 10 & 1623.15 & 86.47 & 413.17 & 30.24 & 0.81 & 28367.38 \\
+    \texttt{c202\_21} & 4 & 1387.71 & 54.00 & 318.26 & 14.47 & 0.79 & 11100.34 \\
+    \texttt{c203\_21} & 2 & 1220.02 & 1.57 & 204.70 & 10.59 & 0.87 & 8169.04 \\
+    \texttt{c204\_21} & 10 & 1141.03 & 74.02 & 259.77 & 22.19 & 0.73 & 14365.78 \\
+    \texttt{c205\_21} & 7 & 1422.71 & 37.13 & 311.45 & 15.90 & 0.80 & 10510.10 \\
+    \texttt{c206\_21} & 9 & 1245.18 & 42.81 & 300.09 & 48.60 & 0.78 & 23719.95 \\
+    \texttt{c207\_21} & 10 & 1266.87 & 52.36 & 298.20 & 46.63 & 0.90 & 22150.46 \\
+    \texttt{c208\_21} & 8 & 1293.73 & 25.72 & 288.76 & 13.37 & 0.75 & 10533.44 \\
+    \midrule
+    \multicolumn{8}{l}{\textit{Instâncias tipo R}} \\
+    \midrule
+    \texttt{r101\_21} & 22 & 2079.33 & 71.14 & 521.49 & 62.13 & 0.72 & 76983.46 \\
+    \texttt{r102\_21} & 13 & 1782.69 & 46.71 & 547.43 & 43.67 & 0.87 & 44214.92 \\
+    \texttt{r103\_21} & 11 & 1545.78 & 71.21 & 432.39 & 32.26 & 0.75 & 26188.50 \\
+    \texttt{r104\_21} & 13 & 1239.35 & 98.69 & 323.01 & 34.13 & 0.86 & 32324.07 \\
+    \texttt{r105\_21} & 18 & 1970.26 & 195.16 & 610.37 & 122.91 & 0.89 & 215936.07 \\
+    \texttt{r106\_21} & 13 & 1845.00 & 172.36 & 489.82 & 50.43 & 0.92 & 92392.61 \\
+    \texttt{r107\_21} & 8 & 1364.23 & 44.73 & 335.84 & 44.17 & 0.71 & 23882.39 \\
+    \texttt{r108\_21} & 19 & 1278.74 & 197.08 & 408.59 & 68.11 & 0.82 & 143600.19 \\
+    \texttt{r109\_21} & 13 & 1547.84 & 267.12 & 455.28 & 68.10 & 0.98 & 155987.47 \\
+    \texttt{r110\_21} & 16 & 1356.21 & 152.45 & 353.79 & 33.13 & 1.11 & 98422.99 \\
+    \texttt{r111\_21} & 5 & 1337.89 & 71.55 & 361.01 & 70.23 & 0.96 & 28510.20 \\
+    \texttt{r112\_21} & 9 & 1476.06 & 213.51 & 321.58 & 36.95 & 0.83 & 60424.00 \\
+    \texttt{r204\_21} & 3 & 833.65 & 25.76 & 100.18 & 30.39 & 0.91 & 7516.51 \\
+    \texttt{r205\_21} & 6 & 1120.18 & 42.48 & 199.69 & 37.45 & 0.82 & 13021.21 \\
+    \texttt{r206\_21} & 5 & 993.29 & 36.60 & 155.24 & 30.97 & 0.89 & 10096.37 \\
+    \texttt{r207\_21} & 3 & 916.88 & 29.43 & 184.37 & 53.58 & 0.73 & 12478.17 \\
+    \texttt{r208\_21} & 4 & 823.21 & 20.39 & 132.82 & 39.94 & 0.74 & 11981.16 \\
+    \texttt{r209\_21} & 3 & 941.83 & 15.22 & 178.85 & 34.49 & 0.81 & 11862.21 \\
+    \texttt{r210\_21} & 6 & 1057.99 & 45.04 & 151.53 & 10.68 & 0.89 & 5871.95 \\
+    \texttt{r211\_21} & 4 & 868.59 & 17.57 & 175.18 & 35.89 & 0.80 & 12166.44 \\
+    \bottomrule
+    \end{tabularx}
+    \end{table}
+
+
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabularx}{\textwidth}{l>{\centering\arraybackslash}X*{6}{>{\centering\arraybackslash}X}}
+    \toprule
+    \multicolumn{8}{l}{\textit{Instâncias tipo RC}} \\
+    \midrule
+    \textbf{ID} & Nº Sol. & \textbf{$\overline{f_1}$} & \textbf{$\sigma_{f_1}$} & \textbf{$\overline{f_2}$} & \textbf{$\sigma_{f_2}$} & \textbf{$\overline{\Delta}$} & \textbf{$\overline{HV}$} \\
+    \midrule
+    \texttt{rc101\_21} & 11 & 2378.59 & 218.76 & 635.12 & 57.97 & 1.14 & 136015.95 \\
+    \texttt{rc102\_21} & 9 & 2254.89 & 363.32 & 567.30 & 41.05 & 0.73 & 119290.40 \\
+    \texttt{rc103\_21} & 6 & 2108.48 & 318.12 & 468.91 & 29.91 & 0.89 & 70005.84 \\
+    \texttt{rc104\_21} & 12 & 1396.35 & 50.10 & 431.08 & 35.05 & 0.81 & 27472.85 \\
+    \texttt{rc105\_21} & 10 & 2133.50 & 86.14 & 507.83 & 23.01 & 0.79 & 33736.33 \\
+    \texttt{rc106\_21} & 9 & 2226.85 & 330.05 & 465.70 & 50.06 & 0.86 & 129154.75 \\
+    \texttt{rc107\_21} & 14 & 1795.19 & 163.91 & 442.03 & 39.05 & 0.95 & 73906.22 \\
+    \texttt{rc108\_21} & 13 & 1712.26 & 217.32 & 394.36 & 33.31 & 1.22 & 82945.31 \\
+    \texttt{rc204\_21} & 13 & 1184.05 & 71.84 & 243.64 & 27.01 & 0.72 & 22357.01 \\
+    \texttt{rc205\_21} & 3 & 1284.76 & 35.27 & 352.52 & 32.84 & 0.92 & 15627.08 \\
+    \texttt{rc206\_21} & 6 & 1390.12 & 64.14 & 200.19 & 31.25 & 0.65 & 15510.30 \\
+    \texttt{rc207\_21} & 10 & 1175.52 & 23.77 & 137.85 & 47.66 & 0.77 & 22459.53 \\
+    \texttt{rc208\_21} & 7 & 1091.27 & 47.80 & 203.06 & 50.80 & 0.87 & 21348.17 \\
+    \bottomrule
+    \end{tabularx}
+    \end{table}
+
+
+
+
+\section{Análise e Discussão}\label{sec:analise-resultados}
+
+Esta seção apresenta uma análise detalhada dos resultados obtidos pelos experimentos computacionais realizados com o algoritmo MOILS proposto para o problema EVRP multiobjetivo. A análise é estruturada de forma a considerar tanto os aspectos quantitativos quanto qualitativos dos resultados, incluindo a comparação com o solucionador exato \textit{Gurobi} quando aplicável.
+
+\subsection{Análise dos Resultados do Grupo I}
+
+Os resultados apresentados na Tabela~\ref{tab:grupo1} permitem avaliar a eficácia da metodologia proposta em instâncias de menor porte, onde é possível realizar comparações com soluções ótimas obtidas pelo solucionador \textit{Gurobi}. 
+
+Para as instâncias do Grupo I, compostas por 5, 10 e 15 clientes, observa-se que a heurística MOILS foi capaz de encontrar soluções viáveis para todas as instâncias testadas. A comparação com os resultados do \textit{Gurobi} permite verificar a qualidade das soluções encontradas em relação ao ótimo global, fornecendo uma medida de quanto a heurística se aproxima da solução ideal para problemas de dimensão reduzida.
+
+Quanto às métricas de qualidade da fronteira Pareto, a medida de dispersão indica o quão uniformemente distribuídas estão as soluções não-dominadas encontradas ao longo da fronteira. Valores próximos a zero indicam uma distribuição mais uniforme, enquanto valores maiores sugerem a presença de lacunas ou agrupamentos na fronteira. O hipervolume, por sua vez, fornece uma medida do volume dominado pela fronteira Pareto encontrada, sendo que valores maiores indicam fronteiras de melhor qualidade, que dominam uma maior porção do espaço de objetivos.
+
+A análise dos resultados do Grupo I também permite avaliar o comportamento do algoritmo conforme o tamanho das instâncias aumenta. Observa-se que, à medida que o número de clientes cresce de 5 para 10 e depois para 15, as diferenças entre as soluções encontradas pela heurística e as soluções ótimas do \textit{Gurobi} possam aumentar, refletindo a crescente complexidade do problema.
+
+Para ilustrar o comportamento do método em uma instância representativa do Grupo I (5 clientes), utilizou-se a instância \texttt{c103C15}. A \autoref{fig:6:pareto-front_c103c15} apresenta a fronteira de Pareto obtida. Já a \autoref{fig:6:metrics_c103c15} apresenta a curva de convergência do hipervolume e da medida de dispersão ao longo das iterações. Ela também mostra o número de soluções no arquivo $A$ ao longo do processo. Nota-se uma fronteira bem distribuída, evidenciando diversidade de compromissos entre distância e custo. A curva de hipervolume tende à estabilização, indicando que o algoritmo explorou adequadamente o espaço de soluções.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\linewidth]{figuras/pareto_front_c103c15.png}
+    \caption[Fronteira de Pareto para a instância \texttt{c103C15}]{Fronteira de Pareto para a instância \texttt{c103C15}, juntamente com pontos nadir e utópico.}
+    \label{fig:6:pareto-front_c103c15}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/convergence_hv_c103c15.png}}
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/convergence_spread_c103c15.png}} \\
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/convergence_combined_c103c15.png}}
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/convergence_solutions_c103c15.png}} \\
+    \caption[Gráfico de convergência para instância \texttt{c103C15}.]{Gráfico de convergência para instância \texttt{c103C15}. (a): Convergência para métrica de hipervolume (HV). (b): Convergência para métrica de medida de dispersão ($\Delta$). (c): Convergência normalizada para ambas as métricas. (d): Evolução do número de soluções no arquivo $A$ ao longo das iterações.}
+    \label{fig:6:metrics_c103c15}
+\end{figure}
+
+Complementarmente, a Figura~\ref{fig:6:rank_c103c15} mostra dois mapas de rotas não-dominadas. Observa-se que pequenas alterações no sequenciamento e nas paradas de recarga produzem diferentes compromissos entre distância total e custo operacional, mantendo viabilidade quanto a janelas de tempo e energia do veículo.
+
+\begin{figure}[!htb]
+    \centering
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/rank1_c103c15.png}}
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/rank4_c103c15.png}} \\
+    \caption[Representações geográficas das soluções para \texttt{c103C15}]{Representações geográficas das soluções para \texttt{c103C15}. (a): Solução minimizando custo. (b): Solução minimizando distância.}
+    \label{fig:6:rank_c103c15}
+\end{figure}
+
+\subsection{Análise dos Resultados do Grupo II}
+
+Os resultados apresentados na Tabela~\ref{tab:grupo2} correspondem às instâncias de maior porte, com 100 clientes, onde o solucionador exato \textit{Gurobi} não foi capaz de encontrar soluções viáveis em tempo computacionalmente aceitável. Esses resultados demonstram a capacidade da metodologia proposta em lidar com instâncias de dimensão realista.
+
+Para o Grupo II, observa-se que o algoritmo MOILS conseguiu encontrar soluções viáveis para todas as instâncias testadas, abrangendo diferentes tipos de características: instâncias tipo C (com janelas de tempo restritas), tipo R (com múltiplas restrições de tempo), e tipo RC (combinando características de ambos os tipos anteriores). Essa diversidade de instâncias permite avaliar a robustez da heurística proposta frente a diferentes configurações do problema.
+
+As métricas de qualidade da fronteira Pareto, particularmente o hipervolume e a medida de dispersão, fornecem insights sobre a diversidade e qualidade das soluções encontradas. Uma fronteira Pareto com alto hipervolume e baixa medida de dispersão indica que o algoritmo foi capaz de encontrar um conjunto diversificado e de alta qualidade de soluções não-dominadas, oferecendo ao decisor múltiplas opções de compromisso entre os objetivos de minimização de distância e custo.
+
+Para uma instância representativa do Grupo II (100 clientes), foi utilizada como exemplo a instância \texttt{c101\_21}. A Figura~\ref{fig:6:pareto_front_c10121} apresenta a fronteira de Pareto. Já a \autoref{fig:6:metrics_c10121} apresenta a curva de convergência do hipervolume e da medida de dispersão ao longo das iterações. Ela também mostra o número de soluções no arquivo $A$ ao longo do processo. Observa-se uma fronteira ampla, refletindo a maior complexidade e o espaço de busca expandido. A curva de hipervolume evidencia ganhos rápidos nas primeiras iterações, seguidos por melhorias marginais, padrão típico de métodos baseados em vizinhanças.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\linewidth]{figuras/pareto_front_c10121.png}
+    \caption[Fronteira de Pareto para a instância \texttt{c101\_21}]{Fronteira de Pareto para a instância \texttt{c101\_21}, juntamente com pontos nadir e utópico.}
+    \label{fig:6:pareto_front_c10121}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/convergence_hv_c10121.png}}
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/convergence_spread_c10121.png}} \\
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/convergence_combined_c10121.png}}
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/convergence_solutions_c10121.png}} \\
+    \caption[Gráfico de convergência para instância \texttt{c101\_21}.]{Gráfico de convergência para instância \texttt{c101\_21}. (a): Convergência para métrica de hipervolume (HV). (b): Convergência para métrica de medida de dispersão ($\Delta$). (c): Convergência normalizada para ambas as métricas. (d): Evolução do número de soluções no arquivo $A$ ao longo das iterações.}
+    \label{fig:6:metrics_c10121}
+\end{figure}
+
+A Figura~\ref{fig:6:rank_c10121} ilustra duas soluções não-dominadas com perfis distintos. Em geral, rotas que priorizam menor distância tendem a concentrar atendimentos geograficamente próximos e mais paradas de recarga curtas, enquanto soluções com menor custo podem aceitar percursos ligeiramente maiores para reduzir custos associados a janelas de tempo e utilização de estações. A presença de múltiplas rotas e recargas em \texttt{c101\_21} reforça a importância de equilibrar energia, janelas de tempo e capacidade.
+
+\begin{figure}[!htb]
+    \centering
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/rank1_c10121.png}}
+    \subfloat[]{\includegraphics[width=.48\textwidth]{figuras/rank13_c10121.png}} \\
+    \caption[Representações geográficas das soluções para \texttt{c101\_21}]{Representações geográficas das soluções para \texttt{c101\_21}. (a): Solução minimizando custo. (b): Solução minimizando distância.}
+    \label{fig:6:rank_c10121}
+\end{figure}
+
+\subsection{Discussão Geral}
+
+Os resultados apresentados evidenciam a eficácia da metodologia proposta baseada em MOILS para resolver o problema EVRP multiobjetivo. A capacidade do algoritmo em encontrar soluções viáveis tanto para instâncias de menor porte quanto para instâncias de maior dimensão demonstra sua versatilidade e robustez.
+
+A comparação com o solucionador \textit{Gurobi} para instâncias do Grupo I fornece uma validação importante da qualidade das soluções encontradas pela heurística. Embora possa não encontrar soluções ótimas em todos os casos, a metodologia proposta oferece uma alternativa computacionalmente eficiente para problemas de dimensão maior, onde métodos exatos se tornam inviáveis.
+
+Quanto às métricas de qualidade da fronteira Pareto, os resultados indicam que o algoritmo foi capaz de encontrar conjuntos de soluções não-dominadas que exploram adequadamente o espaço de compromisso entre os objetivos considerados. A diversidade de soluções encontradas permite ao decisor escolher aquela que melhor se adequa às suas preferências e restrições específicas do contexto de aplicação.
+
+Os resultados também sugerem que a estrutura do algoritmo MOILS, combinando uma heurística construtiva com operadores de busca local e perturbação, é eficaz para lidar com a complexidade do problema EVRP multiobjetivo. A capacidade de explorar diferentes vizinhanças e manter um arquivo de soluções não-dominadas contribui para a qualidade e diversidade das soluções encontradas.
+
+Por fim, cabe destacar que os resultados obtidos reforçam a viabilidade de aplicar métodos metaheurísticos para problemas de roteamento de veículos elétricos em contextos práticos, onde a necessidade de soluções em tempo hábil frequentemente supera a exigência de otimalidade garantida.

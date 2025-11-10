@@ -1,0 +1,22 @@
+{
+  "spread_measure": 0.6275799779582742,
+  "hypervolume": 574.5608366526232,
+  "num_solutions": 4,
+  "num_feasible": 4,
+  "utopian_point": [
+    170.54595090499228,
+    49.92
+  ],
+  "nadir_point": [
+    192.93747413210582,
+    73.55
+  ],
+  "reference_point": [
+    212.23122154531643,
+    80.905
+  ],
+  "avg_distance": 182.25934691554997,
+  "std_distance": 8.973044954190087,
+  "avg_cost": 61.735,
+  "std_cost": 8.601605954704038
+}

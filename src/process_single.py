@@ -28,19 +28,25 @@ def process_single_instance(instance_file):
 
     constructiveHeuristic = ConstructiveHeuristic(instance)
     
-    # Cria população inicial de soluções
     print("\nCriando população inicial...")
     initial_solutions = []
-    while len(initial_solutions) < 50:
+    max_attempts = 100000
+    attempts = 0
+    while len(initial_solutions) < 50 and attempts < max_attempts:
+        attempts += 1
         solution = constructiveHeuristic.build_initial_solution()
-        while not solution.is_feasible:
-            solution = constructiveHeuristic.build_initial_solution()
+        if not solution.is_feasible:
+            continue
         initial_solutions.append(solution)
         if len(initial_solutions) % 10 == 0:
-            print(f"  {len(initial_solutions)} soluções criadas...")
+            print(f"  {len(initial_solutions)} soluções criadas (tentativas: {attempts}/{max_attempts})...")
+        attempts = 0
+    
+    if len(initial_solutions) < 5:
+        raise RuntimeError(f"Falha ao construir soluções iniciais: geradas {len(initial_solutions)} após {attempts} tentativas (mínimo exigido: 5).")
     
     print(f"População inicial criada com {len(initial_solutions)} soluções")
-    
+
     print("\n" + "="*70)
     gvns = GVNS(
         instance=instance,

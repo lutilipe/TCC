@@ -47,8 +47,7 @@ class Solution:
             self.total_distance += route.total_distance
             self.total_cost += route.total_cost
             self.total_penalties += route.total_penalties
-            
-            if not route.is_feasible:
+            if not route.is_feasible and route.total_cost > 0:
                 self.is_feasible = False
                 route_violations += 1
         

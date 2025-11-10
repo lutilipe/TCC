@@ -1,0 +1,58 @@
+Soluções não-dominadas encontradas pelo GVNS
+==================================================
+
+Resumo estatístico das soluções
+--------------------------------------------------
+Distância média: 1390.12
+Desvio padrão da distância: 64.14
+Custo médio: 200.19
+Desvio padrão do custo: 31.25
+
+Solução 1:
+  Distância total: 1270.00
+  Veículos usados: 8
+  Custo total: 245.29
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 2:
+  Distância total: 1365.27
+  Veículos usados: 8
+  Custo total: 237.39
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 8
+
+Solução 3:
+  Distância total: 1374.34
+  Veículos usados: 7
+  Custo total: 193.39
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 7
+
+Solução 4:
+  Distância total: 1430.24
+  Veículos usados: 7
+  Custo total: 191.50
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 7
+
+Solução 5:
+  Distância total: 1434.61
+  Veículos usados: 7
+  Custo total: 173.34
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 7
+
+Solução 6:
+  Distância total: 1466.25
+  Veículos usados: 7
+  Custo total: 160.23
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 7
+

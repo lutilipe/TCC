@@ -1,0 +1,162 @@
+Soluções não-dominadas encontradas pelo GVNS
+==================================================
+
+Resumo estatístico das soluções
+--------------------------------------------------
+Distância média: 1278.74
+Desvio padrão da distância: 197.08
+Custo médio: 408.59
+Desvio padrão do custo: 68.11
+
+Solução 1:
+  Distância total: 1086.59
+  Veículos usados: 18
+  Custo total: 551.04
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 2:
+  Distância total: 1107.09
+  Veículos usados: 18
+  Custo total: 528.90
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 3:
+  Distância total: 1113.62
+  Veículos usados: 18
+  Custo total: 498.00
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 4:
+  Distância total: 1117.15
+  Veículos usados: 18
+  Custo total: 455.07
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 5:
+  Distância total: 1147.60
+  Veículos usados: 18
+  Custo total: 441.47
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 6:
+  Distância total: 1151.48
+  Veículos usados: 18
+  Custo total: 437.15
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 7:
+  Distância total: 1170.16
+  Veículos usados: 18
+  Custo total: 431.52
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 8:
+  Distância total: 1184.80
+  Veículos usados: 18
+  Custo total: 421.88
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 9:
+  Distância total: 1195.43
+  Veículos usados: 17
+  Custo total: 417.63
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 17
+
+Solução 10:
+  Distância total: 1205.81
+  Veículos usados: 19
+  Custo total: 416.18
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 19
+
+Solução 11:
+  Distância total: 1221.82
+  Veículos usados: 18
+  Custo total: 415.37
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 12:
+  Distância total: 1224.62
+  Veículos usados: 18
+  Custo total: 382.83
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 13:
+  Distância total: 1276.26
+  Veículos usados: 17
+  Custo total: 374.73
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 17
+
+Solução 14:
+  Distância total: 1291.94
+  Veículos usados: 18
+  Custo total: 372.51
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 18
+
+Solução 15:
+  Distância total: 1330.46
+  Veículos usados: 19
+  Custo total: 345.64
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 19
+
+Solução 16:
+  Distância total: 1430.81
+  Veículos usados: 21
+  Custo total: 339.18
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 21
+
+Solução 17:
+  Distância total: 1555.22
+  Veículos usados: 20
+  Custo total: 320.92
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 20
+
+Solução 18:
+  Distância total: 1661.92
+  Veículos usados: 17
+  Custo total: 311.13
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 17
+
+Solução 19:
+  Distância total: 1823.30
+  Veículos usados: 20
+  Custo total: 302.01
+  Penalidade: 0.00
+  Solução factível: Sim
+  Número de rotas: 20
+
